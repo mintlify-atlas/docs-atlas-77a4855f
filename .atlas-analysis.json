@@ -1,0 +1,117 @@
+{
+  "projectType": "saas",
+  "projectName": "Stremio Web",
+  "projectDescription": "Stremio is a modern media center web application that lets users discover, watch, and organize video content from streaming addons in a unified interface.",
+  "theme": "almond",
+  "primaryColor": "#5a5ded",
+  "lightColor": "#abb4f4",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/board",
+              "features/discover",
+              "features/library",
+              "features/player",
+              "features/search",
+              "features/calendar"
+            ]
+          },
+          {
+            "group": "Addons",
+            "pages": [
+              "addons/overview",
+              "addons/installing",
+              "addons/catalog"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/settings",
+              "configuration/streaming-server",
+              "configuration/subtitles",
+              "configuration/keyboard-shortcuts"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/docker",
+              "deployment/build"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Developer Guide",
+        "groups": [
+          {
+            "group": "Architecture",
+            "pages": [
+              "developer/architecture",
+              "developer/routing",
+              "developer/services"
+            ]
+          },
+          {
+            "group": "Components",
+            "pages": [
+              "developer/components/overview",
+              "developer/components/meta-item",
+              "developer/components/player",
+              "developer/components/nav-bars"
+            ]
+          },
+          {
+            "group": "Contributing",
+            "pages": [
+              "developer/contributing",
+              "developer/development-setup"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Unified media board with personalized content recommendations",
+    "Discover and browse catalogs from multiple streaming addons",
+    "Full-featured video player with subtitles, audio tracks, and statistics",
+    "Personal library and continue-watching tracking",
+    "Addon system supporting movies, series, channels, TV, music, podcasts, and more",
+    "Chromecast support for casting to TV devices",
+    "Keyboard shortcuts for power users",
+    "Torrent and magnet link support via streaming server",
+    "Multi-language i18n support",
+    "Progressive Web App (PWA) with installable manifest",
+    "Docker deployment support",
+    "Calendar view for release scheduling"
+  ],
+  "publicApiSurface": [
+    "GET /board — Home screen with recommended catalogs",
+    "GET /discover/:transportUrl/:type/:catalogId — Browse addon catalogs",
+    "GET /library/:type — Personal media library",
+    "GET /calendar/:year/:month — Calendar view of scheduled releases",
+    "GET /search — Search across all installed addons",
+    "GET /metadetails/:type/:id/:videoId — Media detail page with streams",
+    "GET /player/:stream — Full video player with controls",
+    "GET /addons/:type/:transportUrl/:catalogId — Addon management",
+    "GET /settings — Application settings",
+    "GET /intro — Onboarding introduction screen",
+    "GET /continuewatching/:type — Continue watching list"
+  ]
+}
