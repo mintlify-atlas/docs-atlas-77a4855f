@@ -1,0 +1,73 @@
+---
+title: "Discover"
+description: "Browse catalogs from installed addons by content type, with filtering and sorting options."
+---
+
+Discover lets you explore specific catalogs exposed by your installed addons. You can filter by content type, select a catalog, and apply extra filters such as genre or year.
+
+## URL structure
+
+```
+/discover/:transportUrl/:type/:catalogId
+```
+
+| Segment | Description |
+|---|---|
+| `transportUrl` | The transport URL of the addon providing the catalog |
+| `type` | Content type (e.g. `movie`, `series`, `channel`, `tv`) |
+| `catalogId` | The catalog identifier from the addon manifest |
+
+Navigating to `/discover` without parameters shows an empty state until you select a catalog.
+
+<Note>
+The URL parameters are percent-encoded. The core validates that `transportUrl` contains a valid hostname before loading the catalog.
+</Note>
+
+## Selectable inputs
+
+Discover exposes three levels of selection at the top of the page:
+
+<Steps>
+  <Step title="Select type">
+    Choose a content type from the type dropdown. The available types are derived from all catalogs across all installed addons. Selecting a type updates the URL and reloads the catalog list.
+  </Step>
+  <Step title="Select catalog">
+    Choose a specific catalog from the catalog dropdown. Each option shows the catalog name and the addon that provides it.
+  </Step>
+  <Step title="Apply extra filters">
+    Catalogs may expose additional filter dimensions such as **Genre**, **Year**, or other addon-defined properties. Each filter appears as a separate dropdown. Selecting a value navigates to the filtered URL.
+  </Step>
+</Steps>
+
+On smaller screens, click the **All Filters** button to open all filter dropdowns in a modal dialog.
+
+## Content types
+
+The content types available depend on what your installed addons provide. Common types and their priority order in the UI:
+
+| Type | Priority |
+|---|---|
+| `movie` | 10 |
+| `series` | 9 |
+| `channel` | 8 |
+| `tv` | 7 |
+| `music` | 6 |
+| `radio` | 5 |
+| `podcast` | 4 |
+| `game` | 3 |
+| `book` | 2 |
+| `adult` | 1 |
+
+## Browsing results
+
+Results are displayed as a grid of `MetaItem` cards. Clicking a card opens the meta details page for that item. On wider screens, selecting a card also shows a **MetaPreview** panel on the right side with the item's description, links, and trailer.
+
+The catalog loads the first page automatically. Additional pages load automatically as you scroll to the bottom of the grid.
+
+## Adding and removing from library
+
+From the MetaPreview panel, you can add or remove the selected item from your library using the library toggle button.
+
+## Missing addon warning
+
+If the URL references an addon that is not installed, a warning banner appears above the results with an **Install Addon** button that opens the addon details modal.

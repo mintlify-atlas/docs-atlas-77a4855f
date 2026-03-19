@@ -1,0 +1,77 @@
+---
+title: "Addons overview"
+description: "How Stremio addons work, what they provide, and where to find them."
+---
+
+Addons are the core of Stremio's content ecosystem. Each addon is an independent service that responds to requests for catalogs, metadata, and streams. When you install an addon, Stremio queries it alongside all your other installed addons to populate the Board, Discover, and player.
+
+## What addons provide
+
+Every addon declares its capabilities in a manifest. Stremio recognizes three resource types:
+
+<CardGroup cols={3}>
+  <Card title="Catalog" icon="list">
+    Browse-able lists of content items — movies, series, TV channels, podcasts, and more. Catalogs appear on the Board and in Discover.
+  </Card>
+  <Card title="Meta" icon="circle-info">
+    Detailed metadata for a specific item: title, description, poster, background image, cast, and episode list.
+  </Card>
+  <Card title="Stream" icon="play">
+    Playable stream URLs for a given item — HTTP links, torrents, or any format supported by the streaming server.
+  </Card>
+</CardGroup>
+
+## Transport URL
+
+Every addon is identified by its **transport URL** — the URL to its `manifest.json` file. This URL is what you paste when installing an addon manually.
+
+```text
+https://example-addon.com/manifest.json
+```
+
+The Addon Details modal displays the transport URL for every installed or remote addon. You can also share this URL directly with others so they can install the same addon.
+
+## Supported content types
+
+Addons declare which content types they support. Stremio recognizes the following types, listed in priority order:
+
+| Type | Description |
+|------|-------------|
+| `movie` | Feature films and short films |
+| `series` | TV shows with seasons and episodes |
+| `channel` | Video channels |
+| `tv` | Live TV streams |
+| `music` | Music content |
+| `radio` | Live radio stations |
+| `podcast` | Podcast episodes and shows |
+| `game` | Gaming content |
+| `book` | Digital books |
+| `adult` | Age-restricted content |
+
+The type filter on the Addons page and Discover page is driven by these values. The type `other` is also valid but appears last and is deprioritized in the UI.
+
+## Official vs community addons
+
+Addons carry an `official` flag in their manifest metadata.
+
+- **Official addons** are published by Stremio and are pre-verified. The Addon Details modal omits the community disclaimer for these addons.
+- **Community addons** are built and maintained by third parties. The Addon Details modal displays a disclaimer noting that Stremio does not control their content.
+
+Both types install and behave identically — the distinction is purely informational.
+
+## Configurable addons
+
+Some addons support per-user configuration (for example, entering an API key or choosing a region). These addons set `configurable: true` in their `behaviorHints`. When an addon also sets `configurationRequired: true`, the install button is replaced with a **Configure** button and you must complete configuration before the addon becomes active.
+
+Configuring an addon opens `{transportUrl}/configure` in an external browser tab.
+
+## Where to find addons
+
+<CardGroup cols={2}>
+  <Card title="Addon catalog" icon="store" href="/addons/catalog">
+    Browse and search addons directly inside Stremio Web at `/addons`.
+  </Card>
+  <Card title="Installing addons" icon="download" href="/addons/installing">
+    Learn how to install from the catalog or via a transport URL.
+  </Card>
+</CardGroup>

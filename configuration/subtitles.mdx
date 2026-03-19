@@ -1,0 +1,116 @@
+---
+title: "Subtitles"
+description: "Configure subtitle appearance, language defaults, and load local subtitle files in Stremio Web."
+---
+
+Stremio Web provides extensive subtitle customization through **Settings → Player → Subtitles**. You can set a default language, adjust size and colors, and load local subtitle files directly in the player.
+
+## Default subtitle language
+
+Set a preferred subtitle language so Stremio automatically selects the right track when a video starts.
+
+1. Go to **Settings → Player → Subtitles Language**.
+2. Choose a language from the dropdown. The list is sorted with your current UI language at the top.
+3. Select **None** to disable automatic subtitle selection.
+
+## Subtitle size
+
+The **Subtitles Size** setting controls the text size as a percentage of the base size.
+
+| Value | Display |
+|-------|---------|
+| 75% | Smaller |
+| 100% | Default |
+| 125% | — |
+| 150% | — |
+| 175% | — |
+| 200% | — |
+| 250% | Largest |
+
+You can also adjust subtitle size during playback with keyboard shortcuts:
+- Press `-` to decrease size.
+- Press `=` to increase size.
+
+## Subtitle fonts
+
+The font face for subtitles can be selected in the player's subtitle menu. The following fonts are available:
+
+| Font name |
+|-----------|
+| Plus Jakarta Sans |
+| Arial |
+| Helvetica |
+| Times New Roman |
+| Verdana |
+| Courier |
+| Lucida Console |
+| sans-serif |
+| serif |
+| monospace |
+
+## Subtitle colors
+
+Three color settings control the visual appearance of subtitle text.
+
+| Setting | Description |
+|---------|-------------|
+| **Subtitles Color** | The color of the subtitle text itself. |
+| **Subtitles Background Color** | A filled rectangle drawn behind subtitle lines to improve legibility. |
+| **Subtitles Outline Color** | A stroke drawn around each character to separate text from the video behind it. |
+
+All three settings accept any color value via the color picker input. Changes apply immediately to active playback.
+
+<Tip>
+Combining a semi-transparent background color with a subtle outline color gives the best readability across different video content.
+</Tip>
+
+## ASS/SSA subtitle styling
+
+ASS (Advanced SubStation Alpha) and SSA subtitle files can contain embedded styling instructions — custom fonts, colors, positions, and animations.
+
+When **ASS Subtitles Styling** is enabled *(desktop shell only)*, Stremio respects the styling defined inside the subtitle file and ignores the custom color and size settings above. Disable this toggle to force your own styling preferences regardless of what the file specifies.
+
+## Subtitle delay
+
+You can adjust subtitle timing during playback without leaving the player:
+
+- Press `G` to shift subtitles earlier (negative delay).
+- Press `H` to shift subtitles later (positive delay).
+
+To toggle subtitles on or off during playback, press `C`.
+
+To open the subtitles menu during playback, press `S`.
+
+## Supported subtitle formats
+
+Stremio Web supports loading the following local subtitle file formats:
+
+| Format | Extension | MIME type |
+|--------|-----------|----------|
+| SubRip | `.srt` | `application/x-subrip` |
+| WebVTT | `.vtt` | `text/vtt` |
+
+The format is detected by reading the file's binary signature, not just the extension.
+
+## Loading local subtitle files
+
+You can load a subtitle file from your device during playback.
+
+<Steps>
+  <Step title="Start playback">
+    Begin playing a video in the Stremio player.
+  </Step>
+  <Step title="Open the subtitles menu">
+    Press `S` or click the subtitles icon in the player controls to open the subtitles panel.
+  </Step>
+  <Step title="Upload a local file">
+    Click the upload area or drag and drop a `.srt` or `.vtt` file onto the player. The file is validated against the supported MIME signatures.
+  </Step>
+  <Step title="Select the uploaded track">
+    The local subtitle file appears as an option in the subtitle track list. Select it to activate it.
+  </Step>
+</Steps>
+
+<Note>
+Local subtitle files are loaded for the current playback session only. They are not saved for future sessions or synced across devices.
+</Note>

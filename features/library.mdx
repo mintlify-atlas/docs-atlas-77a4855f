@@ -1,0 +1,41 @@
+---
+title: "Library"
+description: "Your personal library tracks all content you have added to Stremio, with filtering by content type and sorting options."
+---
+
+The Library stores all the content you have explicitly added or that Stremio has tracked through your watch history. It uses the `LibraryWithFilters` model from stremio-core-web.
+
+## URLs
+
+| Route | Description |
+|---|---|
+| `/library` | All library items across content types |
+| `/library/:type` | Library items filtered to a specific type |
+| `/continuewatching` | In-progress items only |
+| `/continuewatching/:type` | In-progress items filtered to a specific type |
+
+The Library and Continue Watching routes both render the same component, but load different underlying models (`library` vs `continue_watching`).
+
+<Note>
+The Library requires you to be signed in. If you are not authenticated, a placeholder is shown in place of your content.
+</Note>
+
+## Content types
+
+Use the type selector dropdown at the top of the Library to filter by content type. The **All** option shows items across every type. The available types are derived from what is present in your library.
+
+## Sorting
+
+Use the sort chips next to the type selector to change the ordering of your library items. Available sort options are provided by the core and displayed as clickable chip buttons. Selecting a chip updates the `?sort=` query parameter in the URL.
+
+## Loading more items
+
+The Library loads items in pages. Scroll to the bottom to automatically load the next page.
+
+## Removing items
+
+In the Library view (not Continue Watching), each `LibItem` card is rendered with a remove option (`removable={true}`). Use it to remove an item from your library.
+
+## Continue watching
+
+The `/continuewatching` route shows only items with saved playback progress. This is the same data that powers the **Continue Watching** row on the [Board](/features/board). Items are not removable from Continue Watching — to remove an item, go to the main Library and remove it there.

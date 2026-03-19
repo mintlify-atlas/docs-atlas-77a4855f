@@ -1,0 +1,42 @@
+---
+title: "Board"
+description: "The Board is the home screen of Stremio Web. It aggregates catalog rows from all your installed addons and surfaces content you are currently watching."
+---
+
+The Board is the first screen you see after signing in. It loads content from the `CatalogsWithExtra` model, which pulls catalog rows from every installed addon and renders them as horizontally scrollable rows.
+
+## URL
+
+The Board matches the root path `/` or `/board`.
+
+## Continue watching
+
+If you have items in progress, a **Continue Watching** row appears at the top of the Board. Each item shows your current progress and lets you resume playback with one click.
+
+<Note>
+The Continue Watching row only appears when the `continue_watching_preview` model contains at least one item. If you have no in-progress content, the row is hidden entirely.
+</Note>
+
+## Catalog rows
+
+Below the Continue Watching row, the Board displays one row per catalog exposed by your installed addons. Rows load lazily as you scroll — only the rows visible in the viewport (plus a buffer of 5 rows above and below) are fetched from the core.
+
+Each row shows:
+
+- The catalog name as the row title
+- Poster-shaped or landscape-shaped `MetaItem` cards depending on the content type returned
+- A loading placeholder while the catalog is being fetched
+
+If a catalog returns an error that is not `EmptyContent`, the row remains visible with an error message in place of the cards. Catalogs that return `EmptyContent` are hidden.
+
+## Streaming server warning
+
+If the streaming server is configured but unreachable, a warning banner appears at the bottom of the Board. From this banner you can:
+
+- Click **Install Service** to download the Stremio streaming service
+- Click **Later** to dismiss the warning for one month
+- Click **Don't show again** to permanently dismiss it (suppressed for 50 years)
+
+## Navigating from the Board
+
+Click any item card to open its meta details page. The Board is accessible from the main navigation bar at any time.

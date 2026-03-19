@@ -1,0 +1,301 @@
+---
+title: "Components overview"
+description: "All reusable components available in Stremio Web, common hooks, and TypeScript type definitions."
+---
+
+## Component library
+
+All shared components live in `src/components/` and are re-exported from `src/components/index.ts`. Import them using the `stremio/components` alias:
+
+```js
+const { Button, Image, MetaItem } = require('stremio/components');
+// or ESM
+import { Button, MetaItem, HorizontalNavBar } from 'stremio/components';
+```
+
+### Available components
+
+<CardGroup cols={2}>
+  <Card title="AddonDetailsModal" icon="puzzle">
+    Modal dialog displaying full details for an addon, with install/uninstall actions.
+  </Card>
+  <Card title="BottomSheet" icon="layout-bottom">
+    Mobile-friendly bottom drawer that slides up from the bottom of the screen.
+  </Card>
+  <Card title="Button" icon="cursor-click">
+    Base button/link component that renders either an `<a>` or `<button>` depending on whether an `href` is provided.
+  </Card>
+  <Card title="Checkbox" icon="check-square">
+    Styled checkbox input.
+  </Card>
+  <Card title="Chips" icon="tag">
+    Horizontal list of selectable filter chips.
+  </Card>
+  <Card title="ColorInput" icon="palette">
+    Color picker input backed by `a-color-picker`.
+  </Card>
+  <Card title="ContextMenu" icon="menu">
+    Right-click / long-press context menu with accessible keyboard navigation.
+  </Card>
+  <Card title="ContinueWatchingItem" icon="play">
+    Poster card variant optimised for the continue-watching strip.
+  </Card>
+  <Card title="DelayedRenderer" icon="clock">
+    Renders its children after a specified delay to avoid layout thrash on mount.
+  </Card>
+  <Card title="EventModal" icon="calendar">
+    Modal for calendar event details.
+  </Card>
+  <Card title="HorizontalScroll" icon="arrow-right">
+    Horizontally scrollable container with scroll-shadow indicators.
+  </Card>
+  <Card title="Image" icon="image">
+    Lazy-loading image with a `renderFallback` prop for placeholder content.
+  </Card>
+  <Card title="LibItem" icon="library">
+    Library grid item with poster, progress bar, and context menu.
+  </Card>
+  <Card title="MainNavBars" icon="layout">
+    Combines `HorizontalNavBar` + `VerticalNavBar` into the standard app shell layout.
+  </Card>
+  <Card title="MetaItem" icon="film">
+    Poster card for movies, series, and channels. Supports progress, new-video badges, and a context menu.
+  </Card>
+  <Card title="MetaPreview" icon="info">
+    Detail preview panel (background, logo, description, action buttons) shown on the MetaDetails route.
+  </Card>
+  <Card title="MetaRow" icon="rows">
+    Horizontally scrollable row of `MetaItem` cards with a label.
+  </Card>
+  <Card title="ModalDialog" icon="dialog">
+    Generic modal dialog wrapper built on the router `Modal` component.
+  </Card>
+  <Card title="Multiselect" icon="list">
+    Dropdown select with single or multi-select support.
+  </Card>
+  <Card title="MultiselectMenu" icon="filter">
+    Companion menu component for `Multiselect`.
+  </Card>
+  <Card title="HorizontalNavBar" icon="navigation">
+    Top navigation bar with back button, logo, search bar, fullscreen button, and user menu.
+  </Card>
+  <Card title="VerticalNavBar" icon="sidebar">
+    Left-side vertical navigation with icon tabs.
+  </Card>
+  <Card title="NumberInput" icon="hash">
+    Numeric input with increment/decrement controls.
+  </Card>
+  <Card title="Popup" icon="popup">
+    Generic popup container (used internally by `ContextMenu` and `Video`).
+  </Card>
+  <Card title="RadioButton" icon="circle">
+    Styled radio button.
+  </Card>
+  <Card title="SearchBar" icon="search">
+    Search input that navigates to `#/search?query=...`.
+  </Card>
+  <Card title="SharePrompt" icon="share">
+    Share dialog with a copyable link.
+  </Card>
+  <Card title="Slider" icon="sliders">
+    Range slider used for volume, seek, and settings.
+  </Card>
+  <Card title="ShortcutsGroup" icon="keyboard">
+    Renders a labelled group of keyboard shortcuts for the shortcuts modal.
+  </Card>
+  <Card title="TextInput" icon="type">
+    Styled text input.
+  </Card>
+  <Card title="Toggle" icon="toggle-right">
+    On/off toggle switch.
+  </Card>
+  <Card title="Transition" icon="sparkles">
+    CSS transition wrapper that animates children on mount/unmount.
+  </Card>
+  <Card title="Video" icon="video">
+    Episode/video list item with thumbnail, progress, watched state, and context menu.
+  </Card>
+</CardGroup>
+
+---
+
+## Component design patterns
+
+### CommonJS vs ESM
+
+Legacy components export via `module.exports`; newer TypeScript components use `export default`. Both work with Webpack's module resolution and can be mixed freely in imports.
+
+### `React.memo` wrapping
+
+Most components are wrapped in `React.memo` to prevent unnecessary re-renders when parent state changes that don't affect the component's props.
+
+### `filterInvalidDOMProps`
+
+Components that spread `...props` onto a native DOM element use `filter-invalid-dom-props` to strip non-standard attributes before passing them to React:
+
+```js
+import filterInvalidDOMProps from 'filter-invalid-dom-props';
+
+<Button {...filterInvalidDOMProps(props)} className={...}>
+```
+
+### `useBinaryState`
+
+Open/closed, active/inactive, and visible/hidden states are managed with `useBinaryState` rather than `useState(boolean)`:
+
+```js
+const [menuOpen, openMenu, closeMenu, toggleMenu] = useBinaryState(false);
+```
+
+The hook returns `[value, setTrue, setFalse, toggle]`.
+
+---
+
+## Common hooks
+
+All hooks are exported from `stremio/common`:
+
+```js
+const { useProfile, useStreamingServer, useModelState,
+        useBinaryState, useNotifications } = require('stremio/common');
+```
+
+### `useModelState(options)`
+
+The core data-fetching hook. Subscribes to a named model in stremio-core-web and returns its current state. State updates are throttled and deep-compared so only changed fields trigger a re-render.
+
+```js
+const state = useModelState({
+    model: 'discover',       // core model name
+    action: { action: 'Load', args: { ... } }, // optional: dispatched on mount
+    map: (state) => state,  // optional: transform before storing
+    deps: ['ctx'],          // optional: also update when these models change
+    timeout: 100,           // optional: throttle ms (default varies)
+});
+```
+
+### `useProfile()`
+
+Returns the user profile and settings from the `ctx` model.
+
+```js
+const profile = useProfile();
+// profile.auth — null if not logged in
+// profile.settings.interfaceLanguage
+// profile.settings.subtitlesLanguage
+// profile.settings.hideSpoilers
+// profile.settings.streamingServerUrl
+```
+
+### `useStreamingServer()`
+
+Returns the `streaming_server` model state, including server status and playback devices.
+
+```js
+const streamingServer = useStreamingServer();
+// streamingServer.settings — server settings
+// streamingServer.playbackDevices — Loadable<device[]>
+// streamingServer.networkInfo — server network info
+```
+
+### `useBinaryState(initialValue)`
+
+Manages a boolean state with stable `setTrue`, `setFalse`, and `toggle` callbacks.
+
+```js
+const [isOpen, open, close, toggle] = useBinaryState(false);
+```
+
+### `useNotifications()`
+
+Returns notification data from the `ctx` model.
+
+```js
+const notifications = useNotifications();
+// notifications — map of metaId -> Video[]
+```
+
+### Other hooks
+
+| Hook | Description |
+|---|---|
+| `useToast()` | Shows toast notifications |
+| `useFullscreen()` | `[fullscreen, request, exit, toggle]` |
+| `usePlatform()` | Returns platform info (OS, browser) |
+| `useShell()` | Returns the Shell service instance |
+| `useSettings()` | Returns current app settings |
+| `useTorrent()` | Handles torrent loading |
+| `useTranslate()` | Returns a translation function |
+| `useOrientation()` | Returns device orientation |
+| `useInterval(fn, ms)` | `setInterval` hook that clears on unmount |
+| `useTimeout(fn, ms)` | `setTimeout` hook that clears on unmount |
+| `useAnimationFrame(fn)` | `requestAnimationFrame` hook |
+| `useOnScrollToBottom(ref, fn)` | Calls `fn` when the referenced element is scrolled to the bottom |
+
+---
+
+## TypeScript type definitions
+
+Global types are declared in `src/types/` and ambient `.d.ts` files. They are available project-wide without explicit imports.
+
+### `MetaItem`
+
+```ts
+// src/types/MetaItem.d.ts
+type MetaItemPreview = {
+    id: string;
+    type: string;
+    name: string;
+    description: string | null;
+    logo: string | null;
+    background: string | null;
+    poster: string | null;
+    posterShape: PosterShape;      // 'square' | 'landscape' | 'poster' | null
+    releaseInfo: string | null;
+    runtime: string | null;
+    released: Date | null | undefined;
+    trailerStreams: TrailerStream[];
+    links: Link[];
+    behaviorHints: BehaviorHints;
+};
+
+type MetaItem = MetaItemPreview & { videos: Video[] };
+
+type MetaItemDeepLinks = {
+    metaDetailsVideos: string | null;
+    metaDetailsStreams: string | null;
+    player: string | null;
+};
+```
+
+### `Video`
+
+```ts
+// src/types/Video.d.ts
+type Video = {
+    id: string;
+    title: string;
+    thumbnail: string | null;
+    season?: number;
+    episode?: number;
+    released: string | null;
+    streams: Stream[];
+    watched: boolean;
+    progress: number;
+    upcoming: boolean;
+    scheduled: boolean;
+    deepLinks: VideoDeepLinks;
+};
+```
+
+### `Loadable<T>`
+
+```ts
+// src/types/types.d.ts
+type Loadable<T> = {
+    type: 'Ready' | 'Loading' | 'Err';
+    content: T | LoadableError;
+};
+```
+
+The core returns `Loadable` wrappers for most async resources. Always check `state.type === 'Ready'` before accessing `state.content`.

@@ -1,0 +1,95 @@
+---
+title: "Keyboard Shortcuts"
+description: "Complete reference for all keyboard shortcuts available in Stremio Web."
+---
+
+Stremio Web supports keyboard shortcuts for navigation and player control. Shortcuts are active globally except when focus is inside a text input field.
+
+<Note>
+The **Keyboard Shortcuts** section in **Settings** is not shown on mobile devices.
+</Note>
+
+## Navigation shortcuts
+
+These shortcuts work from any view in Stremio Web.
+
+| Shortcut | Action |
+|----------|--------|
+| `1` | Go to **Home** (`/`) |
+| `2` | Go to **Discover** (`/discover`) |
+| `3` | Go to **Library** (`/library`) |
+| `4` | Go to **Calendar** (`/calendar`) |
+| `5` | Go to **Add-ons** (`/addons`) |
+| `6` | Go to **Settings** (`/settings`) |
+| `0` | Go to **Search** (`/search`) |
+| `Escape` | Go back / exit current overlay |
+| `F` | Toggle fullscreen |
+| `Ctrl` + `/` | Open keyboard shortcuts reference |
+| `Backspace` | Navigate back in history |
+| `Ctrl` + `Backspace` | Navigate forward in history |
+
+<Note>
+Navigation digit shortcuts (`0`–`6`) are disabled when focus is on an input field or when any modifier key (`Ctrl`, `Alt`, `Shift`, `Meta`) is held.
+</Note>
+
+## Player shortcuts
+
+These shortcuts are active while the video player is open.
+
+### Playback control
+
+| Shortcut | Action |
+|----------|--------|
+| `Space` | Play / Pause |
+| `Shift` + `N` | Play next episode |
+
+### Seeking
+
+The seek distance for `ArrowRight` / `ArrowLeft` is configurable in **Settings → Player → Seek Duration**. The `Shift`-modified variants use the **Seek Duration (Shift)** setting.
+
+| Shortcut | Action |
+|----------|--------|
+| `ArrowRight` | Seek forward (configured duration, default 10 s) |
+| `Shift` + `ArrowRight` | Seek forward (short duration) |
+| `ArrowLeft` | Seek backward (configured duration, default 10 s) |
+| `Shift` + `ArrowLeft` | Seek backward (short duration) |
+
+### Volume
+
+| Shortcut | Action |
+|----------|--------|
+| `ArrowUp` | Increase volume |
+| `ArrowDown` | Decrease volume |
+| `M` | Toggle mute |
+
+### Subtitles
+
+| Shortcut | Action |
+|----------|--------|
+| `C` | Toggle subtitles on / off |
+| `S` | Open subtitles menu |
+| `-` | Decrease subtitle size |
+| `=` | Increase subtitle size |
+| `G` | Shift subtitle timing earlier |
+| `H` | Shift subtitle timing later |
+
+### Player menus
+
+| Shortcut | Action |
+|----------|--------|
+| `A` | Open audio track menu |
+| `S` | Open subtitles menu |
+| `I` | Open video info menu |
+| `R` | Open playback speed menu |
+| `D` | Open statistics menu |
+
+## Configuring seek duration
+
+The duration used by the `ArrowRight` and `ArrowLeft` shortcuts is set in **Settings → Player → Controls**.
+
+| Setting | Available values |
+|---------|------------------|
+| **Seek Duration** | 3 s, 5 s, 10 s, 15 s, 20 s, 30 s |
+| **Seek Duration (Shift)** | 3 s, 5 s, 10 s, 15 s, 20 s, 30 s |
+
+Both settings are independent, so you can configure a long seek for the plain arrow keys and a short seek for the `Shift`-modified variants.

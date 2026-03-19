@@ -1,0 +1,88 @@
+---
+title: "Introduction"
+description: "Stremio Web — Freedom to Stream. A modern media center for discovering, watching, and organizing video content."
+---
+
+## What is Stremio?
+
+Stremio is a modern media center that serves as a one-stop solution for your video entertainment. You can discover, watch, and organize video content from easy-to-install addons — all in one unified interface.
+
+Stremio Web is the browser-based version of the Stremio client, built with React and powered by the `stremio-core-web` engine. It runs entirely in the browser and can also be self-hosted using Docker.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get up and running with Stremio Web in minutes
+  </Card>
+  <Card title="Installation" icon="download" href="/installation">
+    Install dependencies and build from source
+  </Card>
+  <Card title="Core Features" icon="star" href="/features/board">
+    Explore the Board, Player, Discover, and more
+  </Card>
+  <Card title="Addons" icon="puzzle-piece" href="/addons/overview">
+    Learn how to install and manage streaming addons
+  </Card>
+</CardGroup>
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Unified Board" icon="house" href="/features/board">
+    A personalized home screen with recommendations and continue-watching from all your installed addons
+  </Card>
+  <Card title="Discover" icon="magnifying-glass" href="/features/discover">
+    Browse catalogs from any installed addon — movies, series, channels, TV, music, podcasts, and more
+  </Card>
+  <Card title="Full-featured Player" icon="play" href="/features/player">
+    Built-in video player with subtitles, multiple audio tracks, playback speed control, and live statistics
+  </Card>
+  <Card title="Personal Library" icon="bookmark" href="/features/library">
+    Track your watched content and pick up right where you left off with continue-watching
+  </Card>
+  <Card title="Addon Ecosystem" icon="plug" href="/addons/overview">
+    Install community or official addons to access movies, series, live TV, and more
+  </Card>
+  <Card title="Chromecast" icon="tv" href="/features/player">
+    Cast video to any Chromecast-enabled TV from the player
+  </Card>
+  <Card title="Calendar View" icon="calendar" href="/features/calendar">
+    Track upcoming episode releases organized by date in a visual calendar
+  </Card>
+  <Card title="Keyboard Shortcuts" icon="keyboard" href="/configuration/keyboard-shortcuts">
+    Power-user shortcuts for navigation, playback control, and more
+  </Card>
+</CardGroup>
+
+## Content types
+
+Stremio supports a wide range of media content types through its addon ecosystem:
+
+| Type | Description |
+|------|-------------|
+| `movie` | Feature films and short films |
+| `series` | TV shows with seasons and episodes |
+| `channel` | Video channels and shows |
+| `tv` | Live TV streams |
+| `music` | Music videos and albums |
+| `radio` | Live radio stations |
+| `podcast` | Podcast episodes and shows |
+| `game` | Gaming content |
+| `book` | Digital books |
+| `adult` | Adult content (age-restricted) |
+
+## Architecture overview
+
+Stremio Web is a single-page application (SPA) built on:
+
+- **React 18** — UI layer with component-based architecture
+- **stremio-core-web** — Core business logic, state management, and addon protocol
+- **Less** — Styling with CSS modules
+- **Webpack** — Build toolchain with code splitting
+- **i18next** — Multi-language internationalization
+- **Workbox** — Progressive Web App (PWA) service worker
+
+The app communicates with addons through the Stremio addon protocol and optionally connects to a local streaming server for torrent and advanced stream support.
+
+## Open source
+
+Stremio Web is open source under the [GPL-2.0 license](https://github.com/Stremio/stremio-web/blob/master/LICENSE.md). Contributions are welcome — see the [Contributing guide](/developer/contributing) for details.

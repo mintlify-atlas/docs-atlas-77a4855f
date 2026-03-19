@@ -1,0 +1,169 @@
+---
+title: "Navigation components"
+description: "MainNavBars, HorizontalNavBar, and VerticalNavBar: the app shell navigation system."
+---
+
+## Overview
+
+Navigation in Stremio Web is composed of three components:
+
+- **`MainNavBars`** — the complete app shell layout, combining both nav bars with a content area.
+- **`HorizontalNavBar`** — the top bar with logo/back button, search, fullscreen, and user menu.
+- **`VerticalNavBar`** — the left sidebar with icon tab buttons.
+
+All three are exported from `stremio/components`.
+
+---
+
+## `MainNavBars`
+
+**Location:** `src/components/MainNavBars/MainNavBars.tsx`
+
+`MainNavBars` is a TypeScript component that composes the standard app shell layout. Most routes use it as their root wrapper.
+
+### Props
+
+| Prop | Type | Required | Description |
+|---|---|---|---|
+| `className` | `string` | Yes | CSS class for the outer container |
+| `route` | `string` | No | Current route identifier (e.g. `'board'`, `'discover'`). Passed to both nav bars for active-state highlighting |
+| `query` | `string` | No | Current search query string, forwarded to the `HorizontalNavBar` search bar |
+| `children` | `ReactNode` | No | Route content rendered in the main content area |
+
+### Usage
+
+```tsx
+import MainNavBars from 'stremio/components/MainNavBars';
+
+const Board = ({ urlParams, queryParams }) => (
+    <MainNavBars className={styles['board-container']} route="board">
+        {/* page content */}
+    </MainNavBars>
+);
+```
+
+### Navigation tabs
+
+`MainNavBars` defines the `TABS` array internally:
+
+```ts
+const TABS = [
+    { id: 'board',    label: 'Board',    icon: 'home',     href: '#/' },
+    { id: 'discover', label: 'Discover', icon: 'discover', href: '#/discover' },
+    { id: 'library',  label: 'Library',  icon: 'library',  href: '#/library' },
+    { id: 'calendar', label: 'Calendar', icon: 'calendar', href: '#/calendar' },
+    { id: 'addons',   label: 'ADDONS',   icon: 'addons',   href: '#/addons' },
+    { id: 'settings', label: 'SETTINGS', icon: 'settings', href: '#/settings' },
+];
+```
+
+The `route` prop is compared against each tab's `id` to set the selected state.
+
+### Layout
+
+```
+┌──────────────────────────────────────────────┐
+│  HorizontalNavBar (top, full width)          │
+├────────┬─────────────────────────────────────┤
+│ Vert.  │                                     │
+│ NavBar │      children (nav-content)         │
+│ (left) │                                     │
+└────────┴─────────────────────────────────────┘
+```
+
+---
+
+## `HorizontalNavBar`
+
+**Location:** `src/components/NavBar/HorizontalNavBar/HorizontalNavBar.js`
+
+The top navigation bar rendered as a `<nav>` element.
+
+### Props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `className` | `string` | — | CSS class |
+| `route` | `string` | — | Current route name; suppresses the search bar when `route === 'addons'` |
+| `query` | `string` | — | Pre-filled search query |
+| `title` | `string` | — | Optional page title rendered as `<h2>` |
+| `backButton` | `bool` | — | If `true`, renders a **back** button; otherwise shows the Stremio logo |
+| `searchBar` | `bool` | — | If `true`, renders the search input |
+| `fullscreenButton` | `bool` | — | If `true`, renders a fullscreen toggle button (hidden in iOS PWA) |
+| `navMenu` | `bool` | — | If `true`, renders the user/profile menu |
+
+### Back button vs logo
+
+When `backButton` is `true`, clicking the back chevron calls `window.history.back()`. When `false` (the default for main routes), the Stremio symbol logo is displayed.
+
+### Fullscreen
+
+The fullscreen button uses the `useFullscreen` hook, which wraps the Fullscreen API. In iOS PWA mode (`isIOSPWA` from `usePWA`), the button is always hidden because iOS does not support the Fullscreen API.
+
+### Search bar
+
+The `SearchBar` sub-component navigates to `#/search` and updates the `query` query parameter as the user types. The `active` prop is `true` when `route === 'search'`, which visually highlights the bar.
+
+### NavMenu
+
+`NavMenu` is a `Multiselect`-based dropdown accessed via the person-outline icon. It provides links to account settings, streaming server, and sign out.
+
+---
+
+## `VerticalNavBar`
+
+**Location:** `src/components/NavBar/VerticalNavBar/VerticalNavBar.js`
+
+The left sidebar rendered as a `<nav>` element containing `NavTabButton` components.
+
+### Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `className` | `string` | CSS class |
+| `selected` | `string` | ID of the currently active tab; compared against each tab's `id` |
+| `tabs` | `Tab[]` | Array of tab definitions |
+
+### Tab shape
+
+```js
+VerticalNavBar.propTypes = {
+    tabs: PropTypes.arrayOf(PropTypes.shape({
+        id: PropTypes.string,
+        label: PropTypes.string,    // i18n key, passed through t()
+        logo: PropTypes.string,     // image URL (alternative to icon)
+        icon: PropTypes.string,     // stremio-icons icon name
+        href: PropTypes.string,     // navigation target
+        onClick: PropTypes.func,    // alternative to href
+    }))
+};
+```
+
+Tab labels are passed through `i18next`'s `t()` function, so `label: 'Board'` resolves to the translated string for the current interface language.
+
+---
+
+## Route-aware navigation
+
+The `route` prop on `MainNavBars` and `HorizontalNavBar` must match the route's `id` in the `TABS` array for the correct tab to appear selected.
+
+By convention, each route passes its name as a string literal:
+
+```tsx
+// Board route
+<MainNavBars route="board" />
+
+// Discover route
+<MainNavBars route="discover" />
+
+// MetaDetails route (no matching tab — none will be highlighted)
+<MainNavBars route="metadetails" />
+```
+
+The `HorizontalNavBar` also receives `route` to suppress the search bar on the Addons page and to style the search bar as active on the Search page.
+
+---
+
+## Mobile vs desktop
+
+The distinction between mobile and desktop layout is handled entirely in CSS (Less). On narrow viewports the `VerticalNavBar` collapses to a bottom tab bar and the `HorizontalNavBar` adjusts its padding. No JavaScript breakpoint logic is required in the components.

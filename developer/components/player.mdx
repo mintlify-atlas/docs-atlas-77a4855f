@@ -1,0 +1,194 @@
+---
+title: "Player"
+description: "The Player route and Video component: architecture, event handling, subtitles, and Chromecast integration."
+---
+
+## Overview
+
+The player is implemented as a **full-screen route** at `src/routes/Player/`. It is not a general-purpose embeddable component — it renders over the rest of the app as the topmost view layer.
+
+The `Video` component at `src/components/Video/Video.js` is an unrelated component: it renders a **video episode list item** (thumbnail, title, progress, context menu). The actual HTML video container rendered inside the Player route lives at `src/routes/Player/Video/Video.js`.
+
+---
+
+## Player architecture
+
+```
+src/routes/Player/
+├── Player.js          # Root component: orchestrates all sub-components
+├── usePlayer.js       # Loads the 'player' model from core, returns player state
+├── useVideo.js        # Manages @stremio/stremio-video instance
+├── useStatistics.js   # Derives playback statistics
+├── Video/             # HTML container div for the video element
+├── ControlBar/        # Bottom playback controls
+├── SubtitlesMenu/     # Subtitle track selector
+├── AudioMenu/         # Audio track selector
+├── SpeedMenu/         # Playback speed selector
+├── OptionsMenu/       # Stream options (quality, etc.)
+├── StatisticsMenu/    # Playback statistics panel
+├── SideDrawer/        # Episode list side panel
+├── SideDrawerButton/  # Toggle for side drawer
+├── NextVideoPopup/    # Auto-play next episode popup
+├── BufferingLoader/   # Buffering spinner
+├── VolumeChangeIndicator/ # On-screen volume indicator
+├── Indicator/         # Generic on-screen indicator
+└── Error/             # Error state display
+```
+
+---
+
+## URL parameters
+
+The Player route is reached at `#/player/:stream[/:streamTransportUrl/:metaTransportUrl/:type/:id/:videoId]`.
+
+| Param | Description |
+|---|---|
+| `stream` | Base64-encoded stream descriptor |
+| `streamTransportUrl` | Transport URL of the addon that provided the stream |
+| `metaTransportUrl` | Transport URL for fetching meta (subtitles, next episode) |
+| `type` | Content type (`movie`, `series`, etc.) |
+| `id` | Meta item ID |
+| `videoId` | ID of the specific video/episode |
+
+---
+
+## `usePlayer` hook
+
+`src/routes/Player/usePlayer.js` loads the `player` model from stremio-core:
+
+```js
+const usePlayer = (urlParams) => {
+    const { core } = useServices();
+    const { decodeStream } = useCoreSuspender();
+    const stream = decodeStream(urlParams.stream);
+
+    const action = React.useMemo(() => ({
+        action: 'Load',
+        args: {
+            model: 'Player',
+            args: {
+                stream,
+                streamRequest: { base: urlParams.streamTransportUrl, path: { ... } },
+                metaRequest:   { base: urlParams.metaTransportUrl,   path: { ... } },
+                subtitlesPath: { resource: 'subtitles', type, id: videoId, extra: [] },
+            }
+        }
+    }), [stream]);
+
+    return useModelState({ model: 'player', action, map });
+};
+```
+
+The hook returns an array: `[player, videoParamsChanged, streamStateChanged, timeChanged, seek, pausedChanged, ended, nextVideo]`.
+
+---
+
+## Video container
+
+The `Video` component inside the Player route is a simple `forwardRef` wrapper that provides the DOM node for `@stremio/stremio-video` to attach to:
+
+```js
+// src/routes/Player/Video/Video.js
+const Video = React.forwardRef(({ className, onClick, onDoubleClick }, ref) => (
+    <div className={classnames(className, styles['video-container'])}
+         onClick={onClick} onDoubleClick={onDoubleClick}>
+        <div ref={ref} className={styles['video']} />
+    </div>
+));
+```
+
+The `ref` is passed to the `@stremio/stremio-video` player instance via `useVideo`, which calls the player's `attach(element)` method.
+
+---
+
+## Player state and controls
+
+The Player component manages a rich set of UI states:
+
+```js
+const [immersed, setImmersed] = React.useState(true);
+const [casting, setCasting] = React.useState(false);
+const [error, setError] = React.useState(null);
+
+// Menu open states
+const [optionsMenuOpen,    , closeOptionsMenu,    toggleOptionsMenu]    = useBinaryState(false);
+const [subtitlesMenuOpen,  , closeSubtitlesMenu,  toggleSubtitlesMenu]  = useBinaryState(false);
+const [audioMenuOpen,      , closeAudioMenu,      toggleAudioMenu]      = useBinaryState(false);
+const [speedMenuOpen,      , closeSpeedMenu,      toggleSpeedMenu]      = useBinaryState(false);
+const [statisticsMenuOpen, , closeStatisticsMenu, toggleStatisticsMenu] = useBinaryState(false);
+const [sideDrawerOpen,     , closeSideDrawer,     toggleSideDrawer]     = useBinaryState(false);
+```
+
+The controls overlay is hidden when the player is **immersed** (the user has been inactive for 3 seconds), not casting, the video is playing, and no menu is open:
+
+```js
+const overlayHidden = immersed && !casting
+    && video.state.paused !== null && !video.state.paused
+    && !menusOpen && !nextVideoPopupOpen;
+```
+
+---
+
+## Subtitle rendering
+
+Subtitle tracks are loaded by stremio-core from addon `subtitles` resource endpoints. The SubtitlesMenu renders available tracks and dispatches a `Player.SubtitlesPicked` action to core when the user selects a track.
+
+Subtitle appearance is controlled by profile settings:
+
+| Setting | Constants |
+|---|---|
+| Font size | `SUBTITLES_SIZES`: `[75, 100, 125, 150, 175, 200, 250]` |
+| Font family | `SUBTITLES_FONTS`: PlusJakartaSans, Arial, Helvetica, Times New Roman, Verdana, Courier, Lucida Console, and generic families |
+
+The `hideSpoilers` profile setting blurs video thumbnails in the episode list for unwatched episodes.
+
+---
+
+## Chromecast integration
+
+The Player checks whether Chromecast is active on mount:
+
+```js
+const [casting, setCasting] = React.useState(() => {
+    return services.chromecast.active &&
+        services.chromecast.transport.getCastState() === cast.framework.CastState.CONNECTED;
+});
+```
+
+When casting, the overlay is always visible (the player UI must remain accessible). The Player sends stream information to the Chromecast receiver app (`1634F54B`) via `chromecast.transport.sendMessage`.
+
+---
+
+## `Video` episode list component
+
+The `Video` component at `src/components/Video/Video.js` is a **separate component** from the player video container. It renders a single episode in the MetaDetails episode list and the Player's side drawer.
+
+### Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `id` | `string` | Video ID |
+| `title` | `string` | Episode title |
+| `thumbnail` | `string` | Thumbnail URL |
+| `season` | `number` | Season number |
+| `episode` | `number` | Episode number |
+| `released` | `Date` | Release date |
+| `upcoming` | `bool` | Marks future episodes |
+| `watched` | `bool` | Shows watched indicator |
+| `progress` | `number` | Watch progress 0–100 |
+| `scheduled` | `bool` | Shows TBA label |
+| `seasonWatched` | `bool` | Whether the entire season is watched |
+| `selected` | `bool` | Highlights and auto-scrolls into view |
+| `deepLinks` | `VideoDeepLinks` | Navigation targets |
+| `onMarkVideoAsWatched` | `func` | Callback to toggle watched state |
+| `onMarkSeasonAsWatched` | `func` | Callback to toggle season watched state |
+
+The `Video` component has a `Video.Placeholder` static property that renders a loading skeleton.
+
+### Spoiler blur
+
+When `profile.settings.hideSpoilers` is `true`, thumbnails for unwatched episodes in a series are blurred:
+
+```js
+const blurThumbnail = profile.settings.hideSpoilers && season && episode && !watched;
+```

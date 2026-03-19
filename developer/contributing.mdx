@@ -1,0 +1,179 @@
+---
+title: "Contributing"
+description: "How to contribute to stremio-web: code of conduct, bug reports, pull requests, and coding standards."
+---
+
+## Code of conduct
+
+All contributors are expected to follow the project's code of conduct.
+
+**Positive behaviour includes:**
+- Using welcoming language
+- Being respectful of differing viewpoints
+- Accepting constructive criticism gracefully
+
+**Unacceptable behaviour includes:**
+- Use of sexualized language or imagery
+- Trolling, insulting comments, or personal attacks
+- Public or private harassment
+- Publishing others' private information without permission
+- Submitting pull requests that consist entirely of AI-generated code (e.g. from Devin, Claude Code, Cursor Agent, or similar tools)
+- Submitting PRs where the majority of code is AI-generated and does not solve an actual issue
+- Spamming issues asking for ETAs
+
+<Warning>
+PRs that are entirely or majority AI-generated without genuine understanding and review of the submitted code will be rejected. You must understand and be able to explain every line you submit.
+</Warning>
+
+### Note for contributors using AI tools
+
+You are welcome to use AI models as a **help** when solving issues. However:
+
+- Always review and understand the code before submitting.
+- Avoid submitting excessive AI-generated comments or documentation.
+- Check exactly which files you are staging and committing when using any AI agent.
+- If you are stuck and AI cannot help, ask in the issue thread or consult Stack Overflow, Google, or Medium.
+
+Project maintainers may remove or edit contributions that violate these rules and may ban repeat offenders.
+
+---
+
+## Reporting bugs
+
+<Steps>
+  <Step title="Search existing issues">
+    Before opening a new issue, search the [GitHub issues](https://github.com/stremio/stremio-web/issues) to check whether the bug has already been reported.
+  </Step>
+  <Step title="Gather information">
+    Collect the following before filing:
+    - Browser and version
+    - Operating system
+    - Stremio Web version (shown in Settings)
+    - Steps to reproduce
+    - Expected vs actual behaviour
+    - Console errors (open DevTools → Console)
+  </Step>
+  <Step title="Open an issue">
+    Open a new issue on GitHub with a clear title and the information gathered above. Use the bug report template if one is available.
+  </Step>
+</Steps>
+
+---
+
+## Submitting pull requests
+
+<Steps>
+  <Step title="Fork and clone">
+    Fork the repository on GitHub and clone your fork locally.
+
+    ```bash
+    git clone https://github.com/<your-username>/stremio-web.git
+    cd stremio-web
+    ```
+  </Step>
+  <Step title="Create a branch">
+    Create a feature or fix branch from `main`.
+
+    ```bash
+    git checkout -b fix/my-bug-description
+    ```
+  </Step>
+  <Step title="Make your changes">
+    Write your code. Ensure you:
+    - Understand what every changed line does
+    - Follow the existing code style (see below)
+    - Do not introduce unnecessary AI-generated comments or documentation
+  </Step>
+  <Step title="Run lint and tests">
+    ```bash
+    pnpm lint   # ESLint
+    pnpm test   # Jest
+    ```
+    Fix any errors before pushing.
+  </Step>
+  <Step title="Commit and push">
+    ```bash
+    git add .
+    git commit -m "fix: descriptive message about what was fixed"
+    git push origin fix/my-bug-description
+    ```
+  </Step>
+  <Step title="Open a pull request">
+    Open a pull request from your branch to `main` on the upstream repository. Fill in the PR description with:
+    - What the PR does
+    - Which issue it closes (if any)
+    - How you tested it
+  </Step>
+</Steps>
+
+---
+
+## Coding standards
+
+### ESLint
+
+The project uses ESLint 9 with the following plugins:
+
+| Plugin | Purpose |
+|---|---|
+| `@eslint/js` | Base JS rules |
+| `eslint-plugin-react` | React-specific rules |
+| `typescript-eslint` | TypeScript rules |
+| `@stylistic/eslint-plugin` | Stylistic rules |
+| `@stylistic/eslint-plugin-jsx` | JSX stylistic rules |
+
+Run the linter with:
+
+```bash
+pnpm lint
+```
+
+### TypeScript
+
+New components should be written in TypeScript (`.ts` / `.tsx`). Legacy components use CommonJS `.js` files — when modifying existing files, keep the original module format unless you are explicitly migrating the file.
+
+Global types are declared in `src/types/`. Do not duplicate type declarations that already exist there.
+
+### Component conventions
+
+- Wrap components in `React.memo` when they receive stable props.
+- Use `useBinaryState` for boolean open/close/active states.
+- Use `useModelState` (not raw `useEffect` + `getState`) to subscribe to core models.
+- Spread `...props` through `filterInvalidDOMProps` before passing to DOM elements.
+- Use the `stremio/` alias for internal imports (e.g. `require('stremio/components/Button')`).
+
+### Less / CSS Modules
+
+- All styles are written in Less.
+- CSS Modules are used throughout — class names in `.less` files are locally scoped and referenced as `styles['class-name']`.
+- Avoid inline styles except for dynamic values (e.g. `style={{ width: `${progress}%` }}`).
+
+---
+
+## Translation scanning
+
+The project uses `i18next` with keys defined in the `stremio-translations` package. To check for missing or unused translation keys:
+
+```bash
+pnpm scan-translations
+```
+
+This runs the `i18nScan.test.js` Jest test which statically analyses the codebase for `t('KEY')` calls.
+
+When adding new UI strings, use the `t()` function from `react-i18next` or `i18next` and add the corresponding key to the translations repository.
+
+---
+
+## Testing
+
+Run the Jest test suite with:
+
+```bash
+pnpm test
+```
+
+Test files follow the Jest default configuration. Unit tests live alongside the source files or in a `tests/` directory.
+
+<Note>
+The project does not currently have extensive unit test coverage. Contributions that add tests for edge cases or regression tests for fixed bugs are especially welcome.
+</Note>

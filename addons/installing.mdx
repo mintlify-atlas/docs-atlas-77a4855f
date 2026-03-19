@@ -1,0 +1,90 @@
+---
+title: "Installing addons"
+description: "How to install, configure, and remove addons in Stremio Web."
+---
+
+## Navigate to the Addons page
+
+Open the Addons page by clicking **Addons** in the main navigation bar, or by going directly to `/addons`.
+
+The page shows either your installed addons or a remote addon catalog depending on which catalog is selected in the dropdown at the top.
+
+## Install from the addon catalog
+
+The built-in addon catalog lets you browse and install addons without leaving Stremio Web.
+
+<Steps>
+  <Step title="Open the Addons page">
+    Navigate to `/addons`. The catalog dropdown at the top left defaults to showing installed addons. Select a remote catalog (for example, the Stremio community catalog) from the dropdown to browse available addons.
+  </Step>
+  <Step title="Browse or search">
+    Use the search bar to filter addons by name or description. Use the type filter to narrow results to a specific content type such as `movie` or `series`.
+  </Step>
+  <Step title="Open addon details">
+    Click any addon card to open the Addon Details modal. The modal shows the addon's name, version, transport URL, supported content types, and — for community addons — a disclaimer.
+  </Step>
+  <Step title="Install the addon">
+    Click **Install** in the Addon Details modal. If the addon requires configuration first, a **Configure** button appears instead — click it, complete the setup in the external page that opens, then return to install.
+  </Step>
+</Steps>
+
+## Install via transport URL
+
+You can install any addon directly from its transport URL without browsing the catalog.
+
+<Steps>
+  <Step title="Click Add Addon">
+    On the Addons page, click the **Add Addon** button in the top bar.
+  </Step>
+  <Step title="Paste the transport URL">
+    Paste the addon's `manifest.json` URL into the input field. For example:
+
+    ```text
+    https://example-addon.com/manifest.json
+    ```
+  </Step>
+  <Step title="Confirm">
+    Click **Add**. The Addon Details modal opens and loads the manifest from the URL you provided. Review the details and click **Install**.
+  </Step>
+</Steps>
+
+<Warning>
+  Only install addons from sources you trust. Community addons are not verified by Stremio.
+</Warning>
+
+## Addon Details modal
+
+The Addon Details modal appears whenever you click an addon card or submit a transport URL. It displays:
+
+- Addon name and version
+- Logo and background image (if provided by the addon)
+- Description
+- Transport URL
+- Supported content types
+- A community disclaimer for non-official addons
+
+The modal's action buttons change based on addon state:
+
+| State | Buttons shown |
+|-------|---------------|
+| Not installed, no configuration required | **Cancel**, **Install** |
+| Not installed, configuration required | **Cancel**, **Configure** |
+| Installed, configurable | **Cancel**, **Configure**, **Uninstall** |
+| Installed, not configurable | **Cancel**, **Uninstall** |
+
+## Configure an installed addon
+
+For addons that support configuration, a settings icon appears on the addon card in addition to the install/uninstall button. Click the settings icon, or open the Addon Details modal and click **Configure**, to open the addon's configuration page in an external browser tab.
+
+## Uninstall an addon
+
+You can uninstall an addon in two ways:
+
+- **From the addon card**: Click the **Uninstall** button on the card directly.
+- **From the Addon Details modal**: Click the addon card to open the modal, then click **Uninstall**.
+
+After uninstalling, the addon's catalogs and streams no longer appear in Stremio Web.
+
+## Share an addon
+
+Each addon card has a **Share** button. Clicking it opens a share dialog that displays the addon's transport URL, which you can copy and send to others so they can install the same addon.

@@ -1,0 +1,47 @@
+---
+title: "Search"
+description: "Search across all installed addons simultaneously and navigate directly to meta details from the results."
+---
+
+Search sends a query to all installed addons that support search and displays results grouped by catalog.
+
+## URL
+
+```
+/search?search=<query>
+```
+
+The search query is read from the `search` query parameter (with `query` accepted as a fallback). The core loads the `CatalogsWithExtra` model with `[['search', query]]` as the extra parameters, which broadcasts the query to every installed addon.
+
+## How search works
+
+<Steps>
+  <Step title="Type in the search bar">
+    The search input is embedded in the main navigation bar on the **Search** route. As you type, the URL updates and the core dispatches a new search request.
+  </Step>
+  <Step title="Results load by catalog">
+    Each addon that supports search returns its own set of results. Results are displayed as horizontal rows grouped by catalog, similar to the Board layout. Rows load lazily as you scroll.
+  </Step>
+  <Step title="Navigate to meta details">
+    Click any result card to open the meta details page for that item, where you can browse streams and start playback.
+  </Step>
+</Steps>
+
+## Empty state
+
+When no query has been entered, the Search page shows hints for what you can search:
+
+- **Categories** — search by genre or content category
+- **Persons** — search by actor or director name
+- **Protocols** — search using stream protocol links
+- **Types** — search by content type
+
+## No results
+
+If a query is entered but no installed addons support search (i.e. no catalogs are returned), an empty state message is shown.
+
+If a catalog returns an error that is not `EmptyContent`, the row remains visible with the error message. Catalogs returning `EmptyContent` are hidden.
+
+## Supported query types
+
+Search behaviour depends entirely on the addons you have installed. Most addons support searching by title. Some addons also support searching by IMDb ID, Magnet link, or HTTP/HTTPS URL.

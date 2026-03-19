@@ -1,0 +1,180 @@
+---
+title: "Build from source"
+description: "Build Stremio Web for production and serve the output with the included Express server."
+---
+
+## Prerequisites
+
+Before you build, make sure you have the following installed:
+
+- **Node.js 20** — the `.nvmrc` file pins the project to Node 20. Use [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm) to manage versions.
+- **pnpm 10 or higher** — the project uses pnpm as its package manager.
+
+<CodeGroup>
+
+```bash nvm
+nvm use  # reads .nvmrc and switches to Node 20
+npm install -g pnpm
+```
+
+```bash corepack
+corepack enable
+corepack prepare pnpm@latest --activate
+```
+
+</CodeGroup>
+
+Verify your versions:
+
+```bash
+node --version  # should print v20.x.x
+pnpm --version  # should print 10.x.x or higher
+```
+
+<Warning>
+The Webpack config runs `git rev-parse HEAD` at build time to embed the commit hash into asset paths. You must build from inside a Git repository with at least one commit. Cloning the repository satisfies this requirement.
+</Warning>
+
+## Install dependencies
+
+```bash
+pnpm install
+```
+
+This installs all dependencies from `pnpm-lock.yaml` using a frozen lockfile in CI environments.
+
+## Production build
+
+```bash
+pnpm run build
+```
+
+This runs `webpack --mode production`, which:
+
+- Compiles and transpiles JavaScript (Babel — `@babel/preset-env`, `@babel/preset-react`) and TypeScript (`ts-loader`) with parallel workers via `thread-loader`.
+- Compiles LESS stylesheets, runs PostCSS with cssnano (advanced preset), and extracts CSS into separate files via `MiniCssExtractPlugin`.
+- Minifies JavaScript with Terser (ECMAScript 5 output, mangling enabled).
+- Generates a Workbox service worker (`GenerateSW`) for offline support and PWA caching (maximum cached file size: 20 MB).
+- Copies static assets — favicons, images, screenshots, `manifest.json`, and `.well-known/` — into the output directory.
+- Produces `source-map` devtools for production (as opposed to `eval-source-map` in development).
+
+The build uses all available CPU cores for the loader thread pool.
+
+## Build output
+
+All files are written to the `build/` directory:
+
+```
+build/
+├── <commit-hash>/
+│   ├── scripts/
+│   │   ├── main.js          # Main application bundle
+│   │   └── worker.js        # stremio-core-web web worker
+│   ├── styles/
+│   │   └── main.css         # Extracted stylesheet
+│   └── binaries/
+│       └── *.wasm           # WebAssembly binaries
+├── fonts/                   # Font assets
+├── images/                  # Image assets
+├── favicons/
+├── screenshots/
+├── .well-known/
+├── manifest.json            # PWA manifest
+├── service-worker.js        # Workbox service worker
+├── workbox-*.js             # Workbox runtime
+└── index.html               # Entry point
+```
+
+Asset filenames under `<commit-hash>/` are namespaced by the Git commit hash. This means each build produces unique asset URLs, which makes aggressive long-term browser caching safe.
+
+## Serving the build
+
+The repository includes `http_server.js`, a minimal Express server that serves the `build/` directory.
+
+```bash
+node http_server.js
+```
+
+The server starts on port **8080** and logs:
+
+```
+Server listening on port: 8080
+```
+
+**Cache headers applied by the server:**
+
+| File | `Cache-Control` max-age |
+|---|---|
+| `index.html` | 7,200 seconds (2 hours) |
+| All other files | 2,629,744 seconds (~1 month) |
+
+All unmatched routes return a `404` response. The server does not handle HTTPS — use a reverse proxy (nginx, Caddy) to terminate TLS in production.
+
+<Note>
+The server depends only on `express@4`. You do not need to install the full set of dev dependencies to run it — `npm install express` or `pnpm add express` in a fresh directory is sufficient if you're deploying the `build/` output separately.
+</Note>
+
+## Development server
+
+For local development, use the Webpack dev server instead of the production build:
+
+```bash
+pnpm start
+```
+
+This runs `webpack serve --mode development` with the following configuration:
+
+- Binds to `0.0.0.0` (all interfaces).
+- Serves over **HTTPS** (self-signed certificate).
+- Hot module replacement and live reload are both **disabled**.
+- Uses `eval-source-map` for faster rebuilds.
+- `DEBUG` is set to `true`; the service worker is still registered.
+
+To run the dev server with production-mode settings (minification on, `DEBUG: false`):
+
+```bash
+pnpm run start-prod
+```
+
+## Environment variables
+
+Webpack embeds the following variables into the bundle at build time using `EnvironmentPlugin`. Set them in your shell before running `pnpm run build`:
+
+| Variable | Default | Description |
+|---|---|---|
+| `SENTRY_DSN` | `null` | Sentry DSN. Leave unset to disable error reporting. |
+| `SERVICE_WORKER_DISABLED` | `false` | Set to `true` to skip service worker registration. |
+| `DEBUG` | `true` in dev, `false` in production | Enables client-side debug output. |
+| `VERSION` | From `package.json` | Application version string. |
+
+Example — build with Sentry enabled:
+
+```bash
+SENTRY_DSN=https://your-key@sentry.io/your-project pnpm run build
+```
+
+## PWA and service worker
+
+In production mode, Webpack generates a service worker using [Workbox](https://developer.chrome.com/docs/workbox/) (`workbox-webpack-plugin`). The generated service worker:
+
+- Uses the **GenerateSW** strategy, which precaches all build assets automatically.
+- Claims all open clients immediately (`clientsClaim: true`).
+- Activates without waiting for existing service workers to unregister (`skipWaiting: true`).
+- Skips caching any individual file larger than **20 MB**.
+
+The service worker is not generated during development builds (`argv.mode !== 'production'`). Set `SERVICE_WORKER_DISABLED=true` at build time to opt out entirely.
+
+## Webpack configuration overview
+
+The full configuration lives in `webpack.config.js`. Key points:
+
+| Setting | Value |
+|---|---|
+| Entry points | `src/index.js` (app), `node_modules/@stremio/stremio-core-web/worker.js` (web worker) |
+| Output directory | `build/` |
+| Script output pattern | `<commit-hash>/scripts/[name].js` |
+| Style output pattern | `<commit-hash>/styles/[name].css` |
+| Module aliases | `stremio` → `src/`, `stremio-router` → `src/router/` |
+| Resolved extensions | `.tsx`, `.ts`, `.js`, `.json`, `.less`, `.wasm` |
+| CSS modules ident | `[local]-[hash:base64:5]` |
+| Parallelisation | All loaders share a `thread-loader` pool sized to CPU count |

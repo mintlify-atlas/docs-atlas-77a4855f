@@ -1,0 +1,82 @@
+---
+title: "Addon catalog"
+description: "Browse, filter, and search available addons from remote and installed catalogs."
+---
+
+The Addons page at `/addons` is both a manager for your installed addons and a browser for remote addon catalogs. The two views share the same URL structure and controls.
+
+## URL structure
+
+The Addons page uses the following URL pattern:
+
+```text
+/addons
+/addons/:type
+/addons/:type/:transportUrl/:catalogId
+```
+
+| Segment | Description |
+|---------|-------------|
+| `type` | Content type filter (`movie`, `series`, `tv`, etc.). Omit to show all types. |
+| `transportUrl` | URL-encoded transport URL of the addon that serves the remote catalog. |
+| `catalogId` | The `id` of the specific catalog resource within that addon. |
+
+When `transportUrl` and `catalogId` are both absent, the page shows your **installed addons**. When all three segments are present, the page loads a **remote addon catalog** from the specified addon.
+
+## Catalog and type selectors
+
+Two dropdowns appear at the top of the Addons page:
+
+- **Catalog selector** — switches between installed addons and any available remote addon catalogs. Remote catalog entries come from addons that expose an `addon_catalog` resource.
+- **Type selector** — filters the current view to a specific content type. When viewing installed addons, an **All** option is available. When viewing a remote catalog, only types provided by that catalog are shown.
+
+Selecting a different option in either dropdown navigates to the corresponding URL.
+
+## Browsing remote addons
+
+Remote addon catalogs are fetched from addons that publish `addon_catalog` resources. These catalogs list other addons you can install — effectively an addon directory.
+
+When you select a remote catalog from the dropdown:
+
+1. Stremio requests the catalog from the addon's transport URL using the `addon_catalog` resource type.
+2. While loading, six placeholder cards appear.
+3. Once loaded, the addon cards render with name, version, supported types, description, and install/uninstall controls.
+4. If the request fails, an error message appears in place of the cards.
+
+## Browsing installed addons
+
+The default view — with no `transportUrl` or `catalogId` in the URL — shows all addons you have currently installed. You can filter this list by content type using the type selector.
+
+If you have no installed addons, the page shows a "No addons" message. If you have addons but none match the selected type filter, a "No addons for type" message appears instead.
+
+## Searching addons
+
+A search bar in the top bar filters whichever list is currently visible — installed or remote — in real time. The search matches against the addon's **name** and **description**. Clearing the search field restores the full list.
+
+<Note>
+  The search filter is applied client-side after the catalog loads. It does not send a query to the remote addon.
+</Note>
+
+## Filters modal
+
+On smaller viewports, a filter icon button appears in the top bar. Clicking it opens a **Filters** modal that contains the same catalog and type selectors. This provides access to filters without the top bar controls taking up screen space.
+
+## Installed vs remote state
+
+Every addon card shows whether the addon is currently installed. The card's action button reflects the current state:
+
+- **Install** — the addon is available in the remote catalog but not installed.
+- **Uninstall** — the addon is installed.
+- **Configure** — the addon requires configuration before it can be installed.
+
+For addons that are both installed and configurable, a separate settings icon appears alongside the install/uninstall button.
+
+## Opening addon details
+
+Clicking anywhere on an addon card opens the [Addon Details modal](/addons/installing#addon-details-modal). The modal URL is updated with an `addon` query parameter containing the transport URL:
+
+```text
+/addons?addon=https%3A%2F%2Fexample-addon.com%2Fmanifest.json
+```
+
+This URL is shareable — opening it directly loads the Addons page and immediately shows the Addon Details modal for the specified transport URL.

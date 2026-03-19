@@ -1,0 +1,199 @@
+---
+title: "MetaItem"
+description: "Poster card component for movies, series, and channels with progress tracking, context menus, and deep-link navigation."
+---
+
+## Overview
+
+`MetaItem` (`src/components/MetaItem/MetaItem.js`) is the primary poster card used across the Board, Discover, Library, and Search routes. It renders a poster image with an optional title bar and context menu.
+
+```js
+const MetaItem = require('stremio/components/MetaItem');
+// or
+import { MetaItem } from 'stremio/components';
+```
+
+---
+
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `className` | `string` | Additional CSS class |
+| `type` | `string` | Content type: `movie`, `series`, `channel`, `tv`, etc. Used to select the fallback icon |
+| `name` | `string` | Title displayed below the poster |
+| `poster` | `string` | URL of the poster image |
+| `posterShape` | `'poster' \| 'landscape' \| 'square'` | Aspect ratio of the poster container |
+| `posterChangeCursor` | `bool` | Shows a pointer cursor over the poster area |
+| `progress` | `number` | Watch progress 0–100; renders a progress bar at the bottom of the poster |
+| `newVideos` | `number` | Count of unwatched new episodes; renders a badge overlay |
+| `options` | `array` | Context menu options passed to `Multiselect` |
+| `deepLinks` | `MetaItemDeepLinks` | Navigation targets (see below) |
+| `dataset` | `object` | Arbitrary data forwarded to `optionOnSelect` |
+| `optionOnSelect` | `func` | Called when a context menu option is selected |
+| `onDismissClick` | `func` | If provided, renders a dismiss (×) button overlay |
+| `onPlayClick` | `func` | If provided, renders a play button overlay |
+| `onClick` | `func` | Click handler on the card |
+| `watched` | `bool` | If `true`, shows a checkmark overlay |
+
+### `deepLinks` shape
+
+```ts
+type MetaItemDeepLinks = {
+    metaDetailsVideos: string | null;  // #/metadetails/:type/:id
+    metaDetailsStreams: string | null; // #/metadetails/:type/:id/:videoId
+    player: string | null;             // #/player/:stream
+};
+```
+
+The component picks the first non-null link in the order: `metaDetailsStreams` → `metaDetailsVideos` → `player`.
+
+---
+
+## Poster shapes
+
+<Tabs>
+  <Tab title="poster (default)">
+    Standard movie poster aspect ratio (~2:3). Used for movies and series.
+
+    ```jsx
+    <MetaItem
+        type="movie"
+        name="The Shawshank Redemption"
+        posterShape="poster"
+        poster="https://example.com/poster.jpg"
+    />
+    ```
+  </Tab>
+  <Tab title="landscape">
+    Wide landscape ratio (~16:9). Used for channels and TV.
+
+    ```jsx
+    <MetaItem
+        type="channel"
+        name="My Channel"
+        posterShape="landscape"
+        poster="https://example.com/landscape.jpg"
+    />
+    ```
+  </Tab>
+  <Tab title="square">
+    Square ratio (1:1). Used for music, podcasts, and some addon catalogs.
+
+    ```jsx
+    <MetaItem
+        type="music"
+        name="Album Name"
+        posterShape="square"
+        poster="https://example.com/square.jpg"
+    />
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Poster overlays
+
+The poster container renders several conditional overlay layers stacked from back to front:
+
+1. **Dismiss layer** (`onDismissClick` provided) — close icon top-left, used in the continue-watching strip to remove an item.
+2. **Watched layer** (`watched={true}`) — checkmark icon overlay.
+3. **Poster image layer** — the poster itself, with a type-specific icon fallback when the image fails to load (via the `ICON_FOR_TYPE` map).
+4. **Play layer** (`onPlayClick` provided) — circular play button, used in the continue-watching strip.
+5. **Progress bar layer** (`progress > 0`) — thin bar at the bottom of the poster.
+6. **New videos layer** (`newVideos > 0`) — stacked card effect with a `+N` badge for new episodes.
+
+---
+
+## Context menu
+
+If `options` is a non-empty array, a three-dot menu button appears in the title bar. Selecting an option calls `optionOnSelect` with:
+
+```js
+{
+    type: 'select-option',
+    value: optionValue,     // the selected option's value
+    dataset: dataset,       // the dataset prop passed to MetaItem
+    reactEvent: event,
+    nativeEvent: event,
+}
+```
+
+Clicking the menu button sets `selectPrevented` on the native event so the card's `onClick` is not also triggered.
+
+---
+
+## Fallback icon
+
+When the `poster` URL fails to load, the `Image` component calls `renderFallback`, which renders an icon from `@stremio/stremio-icons` based on the content `type`:
+
+```js
+// src/components/MetaItem/MetaItem.js
+const renderPosterFallback = React.useCallback(() => (
+    <Icon
+        className={styles['placeholder-icon']}
+        name={ICON_FOR_TYPE.has(type) ? ICON_FOR_TYPE.get(type) : ICON_FOR_TYPE.get('other')}
+    />
+), [type]);
+```
+
+The `ICON_FOR_TYPE` map in `CONSTANTS.js`:
+
+| Type | Icon name |
+|---|---|
+| `movie` | `movies` |
+| `series` | `series` |
+| `channel` | `channels` |
+| `tv` | `tv` |
+| `book` | `ic_book` |
+| `game` | `ic_games` |
+| `music` | `ic_music` |
+| `adult` | `ic_adult` |
+| `radio` | `ic_radio` |
+| `podcast` | `ic_podcast` |
+| `other` | `movies` |
+
+---
+
+## Usage in Discover
+
+In the Discover and Board routes, `MetaItem` is rendered inside a `MetaRow`:
+
+```jsx
+<MetaRow label={catalog.label}>
+    {catalog.content.map((item) => (
+        <MetaItem
+            key={item.id}
+            type={item.type}
+            name={item.name}
+            poster={item.poster}
+            posterShape={item.posterShape}
+            progress={item.progress}
+            newVideos={item.newVideos}
+            deepLinks={item.deepLinks}
+            options={buildOptions(item)}
+            optionOnSelect={handleOptionSelect}
+            dataset={{ type: item.type, id: item.id }}
+        />
+    ))}
+</MetaRow>
+```
+
+## Usage in Library
+
+In the Library route, `MetaItem` gets `onDismissClick` and `onPlayClick` for in-line actions:
+
+```jsx
+<MetaItem
+    type={item.type}
+    name={item.name}
+    poster={item.poster}
+    posterShape={item.posterShape}
+    progress={item.progress}
+    deepLinks={item.deepLinks}
+    onDismissClick={() => handleDismiss(item)}
+    onPlayClick={() => handlePlay(item)}
+    watched={item.state.noNotifs}
+/>
+```

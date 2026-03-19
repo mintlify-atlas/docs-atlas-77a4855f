@@ -1,0 +1,222 @@
+---
+title: "Installation"
+description: "System requirements, installation methods, and environment configuration for Stremio Web."
+---
+
+## System requirements
+
+| Requirement | Minimum version |
+| ----------- | --------------- |
+| Node.js     | 20              |
+| pnpm        | 10              |
+| Git         | Any recent      |
+
+<Note>
+  The project's `.nvmrc` pins Node.js to version **20**. Using a different major version may cause unexpected build failures.
+</Note>
+
+## Install Node.js and pnpm
+
+<Tabs>
+  <Tab title="nvm (recommended)">
+    [nvm](https://github.com/nvm-sh/nvm) lets you manage multiple Node.js versions on the same machine.
+
+    ```bash
+    # Install nvm
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
+
+    # Install and activate Node.js 20
+    nvm install 20
+    nvm use 20
+    ```
+
+    Then install pnpm:
+
+    ```bash
+    npm install -g pnpm
+    ```
+  </Tab>
+  <Tab title="Direct download">
+    Download the Node.js 20 installer from [nodejs.org](https://nodejs.org) and run it.
+
+    Then install pnpm:
+
+    ```bash
+    npm install -g pnpm
+    ```
+  </Tab>
+  <Tab title="Homebrew (macOS)">
+    ```bash
+    brew install node@20 pnpm
+    ```
+  </Tab>
+</Tabs>
+
+Verify both are installed correctly:
+
+```bash
+node --version   # should print v20.x.x
+pnpm --version   # should print 10.x.x or higher
+```
+
+## Clone and install from source
+
+```bash
+git clone https://github.com/Stremio/stremio-web.git
+cd stremio-web
+pnpm install
+```
+
+`pnpm install` uses the lockfile (`pnpm-lock.yaml`) to install exact dependency versions, ensuring a reproducible environment.
+
+## Development vs. production setup
+
+<Tabs>
+  <Tab title="Development">
+    The development server compiles your source on the fly, enables hot module replacement, and skips minification for faster rebuilds.
+
+    **Start the dev server:**
+
+    ```bash
+    pnpm start
+    ```
+
+    This runs `webpack serve --mode development`. Open [http://localhost:8080](http://localhost:8080) in your browser.
+
+    **Start in production mode (without Docker):**
+
+    If you want to preview the production bundle locally using the Webpack dev server:
+
+    ```bash
+    pnpm start-prod
+    ```
+
+    This runs `webpack serve --mode production`, which enables all production optimisations but still serves via the dev server.
+
+    <Tip>
+      Use `pnpm start` for day-to-day development. Use `pnpm start-prod` only when you need to verify production-mode behaviour without a full build and HTTP server setup.
+    </Tip>
+  </Tab>
+  <Tab title="Production">
+    A production deployment involves two steps: building the static assets and serving them with a lightweight HTTP server.
+
+    **Step 1 — Build the static assets:**
+
+    ```bash
+    pnpm run build
+    ```
+
+    This runs `webpack --mode production` and outputs optimised, minified files to the `build/` directory.
+
+    **Step 2 — Serve the build:**
+
+    The repository includes `http_server.js`, a minimal [Express](https://expressjs.com) server that serves the `build/` directory on port **8080**.
+
+    Install Express, then start the server:
+
+    ```bash
+    npm install express@4
+    node http_server.js
+    ```
+
+    The server applies appropriate cache headers:
+    - `index.html` — cached for **2 hours** (`max-age: 7200`)
+    - All other static assets — cached for **~1 month** (`max-age: 2629744`)
+
+    <Note>
+      Make sure you run `pnpm run build` before starting `http_server.js`. The server reads from the `build/` directory and will fail if it doesn't exist.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Run with Docker
+
+The included `Dockerfile` handles the entire build and serve pipeline in a multi-stage build using Node.js 20 Alpine.
+
+**Build the image:**
+
+```bash
+docker build -t stremio-web .
+```
+
+**Run the container:**
+
+```bash
+docker run -p 8080:8080 stremio-web
+```
+
+Stremio Web is now accessible at [http://localhost:8080](http://localhost:8080).
+
+**What happens inside the build:**
+
+| Stage    | What it does                                                          |
+| -------- | --------------------------------------------------------------------- |
+| `base`   | Sets up Node.js 20 Alpine with pnpm via corepack and installs git.    |
+| `app`    | Installs dependencies with `pnpm i --frozen-lockfile` and runs `pnpm build`. |
+| `server` | Installs Express 4 for the HTTP server.                               |
+| Final    | Copies only the built assets and `http_server.js` — no source code.   |
+
+<Tip>
+  The final image excludes all source code and dev tooling, keeping the deployed image small.
+</Tip>
+
+**Override the Node.js version:**
+
+```bash
+docker build --build-arg NODE_VERSION=20-alpine -t stremio-web .
+```
+
+**Map to a different host port:**
+
+```bash
+docker run -p 3000:8080 stremio-web
+```
+
+The app will then be available at [http://localhost:3000](http://localhost:3000).
+
+## Environment configuration
+
+Stremio Web does not require a `.env` file for basic use. Configuration is applied at build time through Webpack.
+
+<AccordionGroup>
+  <Accordion title="Changing the HTTP server port">
+    The HTTP server port is hardcoded in `http_server.js`:
+
+    ```javascript
+    const HTTP_PORT = 8080;
+    ```
+
+    To use a different port, edit this value before building your Docker image or before running `node http_server.js` directly.
+  </Accordion>
+  <Accordion title="Running the linter">
+    The project uses ESLint with TypeScript and React plugins. Run it with:
+
+    ```bash
+    pnpm lint
+    ```
+
+    This checks all files under `src/`.
+  </Accordion>
+  <Accordion title="Running tests">
+    ```bash
+    pnpm test
+    ```
+
+    This runs the Jest test suite. To scan for missing translation keys specifically:
+
+    ```bash
+    pnpm scan-translations
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Available scripts
+
+| Script                   | Command                    | Description                                      |
+| ------------------------ | -------------------------- | ------------------------------------------------ |
+| `pnpm start`             | `webpack serve --mode development` | Start dev server with HMR.               |
+| `pnpm start-prod`        | `webpack serve --mode production`  | Dev server with production optimisations.|
+| `pnpm run build`         | `webpack --mode production`        | Output static build to `build/`.         |
+| `pnpm test`              | `jest`                             | Run the Jest test suite.                 |
+| `pnpm lint`              | `eslint src`                       | Lint source files.                       |
+| `pnpm scan-translations` | `pnpx jest ./tests/i18nScan.test.js` | Scan for missing translation keys.     |

@@ -1,0 +1,154 @@
+---
+title: "Streaming Server"
+description: "Configure the Stremio streaming server for torrent-based streams, remote access, caching, and transcoding."
+---
+
+The Stremio streaming server is a local HTTP service that handles torrent-based streams, format transcoding, and caching. Stremio Web connects to it over HTTP to play content that requires peer-to-peer streaming.
+
+## Default configuration
+
+The streaming server runs locally on your machine. The default URL is:
+
+```
+http://127.0.0.1:11470/
+```
+
+This URL is pre-configured in Stremio Web. When the server is running and reachable at this address, the status indicator in **Settings → Streaming Server** turns green.
+
+## What the streaming server provides
+
+- **Torrent streaming** — buffers and streams video directly from BitTorrent peers without downloading the full file first.
+- **Format support** — serves media in formats compatible with the web player, converting container formats when necessary.
+- **Caching** — stores streamed data on disk to allow resuming and rewinding without re-downloading.
+- **Remote access** — exposes a secure HTTPS endpoint so you can use Stremio Web on one device while the server runs on another.
+- **Transcoding** — re-encodes video on the fly for devices or players that cannot decode certain codecs.
+
+## Managing server URLs
+
+You can manage multiple streaming server URLs from **Settings → Streaming Server**.
+
+<Steps>
+  <Step title="Open Settings">
+    Navigate to **Settings** and scroll to the **Streaming Server** section.
+  </Step>
+  <Step title="View current URLs">
+    The URL list shows every configured server address along with its connection status.
+  </Step>
+  <Step title="Add a URL">
+    Click **Add URL**, enter the full server address including the port (for example `http://192.168.1.10:11470/`), and confirm. An error toast appears if the URL is not valid.
+  </Step>
+  <Step title="Select a URL">
+    Click a URL in the list to make it the active server connection.
+  </Step>
+  <Step title="Remove a URL">
+    Click the remove button next to a URL to delete it from the list.
+  </Step>
+  <Step title="Reload">
+    Click **Reload** to force Stremio to reconnect to the currently selected server.
+  </Step>
+</Steps>
+
+## Connecting to a remote streaming server
+
+You can run the streaming server on a different machine — for example a home server or NAS — and connect to it from Stremio Web running on another device.
+
+<Steps>
+  <Step title="Start the streaming server on the host machine">
+    Launch the Stremio desktop app or standalone streaming server on the machine you want to use as the host. Ensure it is running and reachable on your network.
+  </Step>
+  <Step title="Find the server's local IP address">
+    On the host machine, note its local network IP address (for example `192.168.1.50`).
+  </Step>
+  <Step title="Add the remote URL in Stremio Web">
+    On the client device, open **Settings → Streaming Server** and click **Add URL**. Enter the host address and port:
+
+    ```
+    http://192.168.1.50:11470/
+    ```
+  </Step>
+  <Step title="Select the new URL">
+    Click the newly added URL in the list to activate it. The status indicator updates when the connection succeeds.
+  </Step>
+</Steps>
+
+<Warning>
+The streaming server does not authenticate connections by default. Only use remote server URLs on trusted networks, or enable HTTPS remote access as described below.
+</Warning>
+
+## Enabling HTTPS remote access
+
+When you need to connect to your streaming server over the internet or from an untrusted network, enable the HTTPS endpoint.
+
+<Note>
+This option is only available when you are signed in to a Stremio account.
+</Note>
+
+<Steps>
+  <Step title="Sign in to your Stremio account">
+    Make sure you are signed in via **Settings → General**.
+  </Step>
+  <Step title="Open the HTTPS Endpoint setting">
+    In **Settings → Streaming Server**, locate the **HTTPS Endpoint** dropdown.
+  </Step>
+  <Step title="Select a network interface">
+    Choose the network interface the server should expose. The dropdown lists the available interfaces reported by the connected server. Select **Disabled** to turn off remote HTTPS access.
+  </Step>
+  <Step title="Copy the Remote URL">
+    Once the HTTPS endpoint is active, the **Remote URL** field displays the public address. Click the copy icon to copy it to your clipboard.
+  </Step>
+</Steps>
+
+## Cache size
+
+The cache controls how much disk space the streaming server uses to store downloaded torrent data.
+
+| Option | Size |
+|--------|------|
+| No caching | 0 — data is not written to disk |
+| 2 GiB | 2,147,483,648 bytes |
+| 5 GiB | 5,368,709,120 bytes |
+| 10 GiB | 10,737,418,240 bytes |
+| Infinite | No limit — uses available disk space |
+
+Change this from **Settings → Streaming Server → Cache Size**.
+
+## Torrent profiles
+
+Torrent profiles are presets for the BitTorrent connection parameters. Select the profile that best fits your network in **Settings → Streaming Server → Torrent Profile**.
+
+| Profile | Max Connections | Download Speed Hard Limit | Use case |
+|---------|-----------------|---------------------------|----------|
+| **Default** | 55 | ~3.5 MB/s | General use |
+| **Soft** | 35 | ~1.6 MB/s | Low-bandwidth or throttled connections |
+| **Fast** | 200 | ~37.5 MB/s | Fast connections |
+| **Ultra Fast** | 400 | ~75 MB/s | Very fast connections |
+
+If none of the presets match your setup, a **custom** entry appears automatically when the server's settings differ from all built-in profiles.
+
+## Transcoding profile
+
+The **Transcoding Profile** setting selects the hardware acceleration backend the streaming server uses when re-encoding video. The available options are reported dynamically by the connected server based on the host machine's hardware. Set it to **Disabled** to use software-only transcoding.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="The server status shows as disconnected">
+    - Confirm the Stremio desktop app or standalone server is running on the host machine.
+    - Check that the URL in **Settings → Streaming Server** matches the address and port the server is actually listening on (default: `http://127.0.0.1:11470/`).
+    - Click **Reload** to force a reconnection attempt.
+    - Check your firewall — the port `11470` must be accessible from the client device.
+  </Accordion>
+  <Accordion title="Torrent streams don't start">
+    - Verify the streaming server is connected (green status indicator).
+    - Try switching to a different torrent profile in **Settings → Streaming Server → Torrent Profile**.
+    - Increase the cache size so the server has room to buffer data.
+    - Check that your network allows outbound BitTorrent connections.
+  </Accordion>
+  <Accordion title="The HTTPS Endpoint dropdown is empty or missing">
+    - You must be signed in to a Stremio account for this option to appear.
+    - The streaming server must be connected and in a Ready state for the available interfaces to be listed.
+  </Accordion>
+  <Accordion title="Remote URL is not shown">
+    The **Remote URL** field only appears when `streamingServer.remoteUrl` is non-null, which requires an active HTTPS endpoint configuration. Follow the steps in [Enabling HTTPS remote access](#enabling-https-remote-access) first.
+  </Accordion>
+</AccordionGroup>

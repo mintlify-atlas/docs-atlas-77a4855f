@@ -1,0 +1,204 @@
+---
+title: "Development setup"
+description: "How to set up a local development environment for Stremio Web."
+---
+
+## Prerequisites
+
+Before you start, make sure you have:
+
+- **Node.js** 18 or later
+- **pnpm** (the project uses pnpm as its package manager)
+- **Git**
+- A modern browser (Chrome or Firefox recommended for the dev server)
+
+<Tip>
+Install pnpm with `npm install -g pnpm` or via a version manager like `fnm` or `volta`.
+</Tip>
+
+---
+
+## Fork and clone
+
+<Steps>
+  <Step title="Fork the repository">
+    Go to [github.com/stremio/stremio-web](https://github.com/stremio/stremio-web) and click **Fork**.
+  </Step>
+  <Step title="Clone your fork">
+    ```bash
+    git clone https://github.com/<your-username>/stremio-web.git
+    cd stremio-web
+    ```
+  </Step>
+  <Step title="Add the upstream remote">
+    ```bash
+    git remote add upstream https://github.com/stremio/stremio-web.git
+    ```
+    This lets you pull future changes from the main repository.
+  </Step>
+</Steps>
+
+---
+
+## Install dependencies
+
+```bash
+pnpm install
+```
+
+pnpm reads the `pnpm-lock.yaml` lockfile and installs exact versions. Do not use `npm install` or `yarn install` — they will create a different lockfile and may change dependency versions.
+
+---
+
+## Start the development server
+
+```bash
+pnpm start
+```
+
+This runs `webpack serve --mode development`. The dev server:
+
+- Listens on `0.0.0.0` (all interfaces) on a random HTTPS port
+- Uses **HTTPS** by default (required for service workers and Cast SDK)
+- Has **hot reload and live reload disabled** (`hot: false`, `liveReload: false`) — you must manually refresh the browser after changes
+- Outputs source maps using `eval-source-map` for faster rebuilds
+- Does **not** generate a service worker (only production builds do)
+
+<Warning>
+The dev server uses a self-signed certificate. Your browser will show a security warning on first launch. You need to accept the certificate (or add a permanent exception) before the app will load.
+</Warning>
+
+Once started, open the URL shown in the terminal (e.g. `https://localhost:8080`) in your browser.
+
+---
+
+## Production build
+
+```bash
+pnpm build
+```
+
+Outputs to `build/`. The build:
+
+- Prefixes all asset filenames with the current git commit hash
+- Minifies JS with Terser
+- Extracts and minifies CSS
+- Generates a Workbox service worker
+- Copies `manifest.json`, favicons, images, and screenshots
+
+To preview the production build locally:
+
+```bash
+pnpm start-prod
+```
+
+This runs `webpack serve --mode production`, which generates a service worker and uses production minification but still serves over the webpack dev server.
+
+---
+
+## Run tests
+
+```bash
+pnpm test
+```
+
+Runs the Jest test suite. Configuration is in `package.json` (Jest defaults). Test files are co-located with source files or placed in `tests/`.
+
+---
+
+## Run the linter
+
+```bash
+pnpm lint
+```
+
+Runs ESLint over the entire `src/` directory. The linter checks JS, TS, and TSX files. Fix all errors before committing.
+
+---
+
+## Scan for missing translations
+
+```bash
+pnpm scan-translations
+```
+
+Runs `jest ./tests/i18nScan.test.js`, which statically analyses the source for `t('KEY')` calls and compares them against the keys available in `stremio-translations`. Use this when adding or renaming UI strings.
+
+---
+
+## Webpack configuration overview
+
+The full Webpack config is at `webpack.config.js`. Key settings relevant to development:
+
+| Setting | Value | Notes |
+|---|---|---|
+| Entry points | `src/index.js`, `node_modules/@stremio/stremio-core-web/worker.js` | App + WASM worker |
+| Output path | `build/` | Cleaned on each build |
+| Filename pattern | `<COMMIT_HASH>/scripts/[name].js` | Commit hash is read with `git rev-parse HEAD` |
+| Source maps (dev) | `eval-source-map` | Fast incremental rebuild |
+| Source maps (prod) | `source-map` | Separate `.map` files |
+| HTTPS | `server: 'https'` | Self-signed cert |
+| Thread loader | CPU count workers | Babel, ts-loader, less-loader run in parallel |
+| Aliases | `stremio` → `src/`, `stremio-router` → `src/router/` | |
+
+### Environment variables
+
+Webpack exposes these environment variables to the app:
+
+| Variable | Default | Description |
+|---|---|---|
+| `VERSION` | `package.json` version | App version string |
+| `COMMIT_HASH` | `git rev-parse HEAD` | Git commit hash |
+| `DEBUG` | `true` in dev, `false` in prod | Enables debug mode |
+| `SENTRY_DSN` | `null` | Sentry error reporting DSN |
+| `SERVICE_WORKER_DISABLED` | `false` | Set to `true` to disable the service worker |
+
+Pass custom values via the Webpack `--env` flag:
+
+```bash
+pnpm build --env SENTRY_DSN=https://your-dsn@sentry.io/123
+```
+
+---
+
+## Module aliases
+
+Webpack resolves two aliases configured in `webpack.config.js`:
+
+```js
+resolve: {
+    alias: {
+        'stremio':        path.resolve(__dirname, 'src'),
+        'stremio-router': path.resolve(__dirname, 'src', 'router')
+    }
+}
+```
+
+This means you can import any file under `src/` with `stremio/` and the router package with `stremio-router`:
+
+```js
+const { useProfile } = require('stremio/common');
+const { useRouteFocused } = require('stremio-router');
+```
+
+---
+
+## Common issues
+
+<AccordionGroup>
+  <Accordion title="Browser shows 'Your connection is not private'">
+    The dev server uses a self-signed TLS certificate. Click **Advanced** and then **Proceed** (or the equivalent in your browser) to accept it. You only need to do this once per browser profile.
+  </Accordion>
+  <Accordion title="Changes not reflected after saving">
+    Hot reload and live reload are both disabled. After saving a file and Webpack finishes recompiling, manually refresh the browser tab.
+  </Accordion>
+  <Accordion title="'git rev-parse HEAD' fails during build">
+    The Webpack config runs `git rev-parse HEAD` at build time. Make sure you are inside a Git repository (i.e. you cloned the project with `git clone`, not downloaded a ZIP archive).
+  </Accordion>
+  <Accordion title="pnpm install fails with peer dependency errors">
+    Use the exact pnpm version compatible with the lockfile. Check `.npmrc` or `package.json` for an `engines` field. Running `pnpm install --no-strict-peer-dependencies` can work around strict peer checks during development.
+  </Accordion>
+  <Accordion title="Worker script 404 in the browser">
+    The worker URL is built from `process.env.COMMIT_HASH`. If you see a 404 for `/scripts/worker.js`, ensure `git rev-parse HEAD` returns a valid hash and that Webpack finished compiling both entry points.
+  </Accordion>
+</AccordionGroup>

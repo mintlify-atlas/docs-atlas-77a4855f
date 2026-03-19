@@ -1,0 +1,240 @@
+---
+title: "Services"
+description: "The services layer: Core, Shell, Chromecast, DragAndDrop, KeyboardShortcuts, and how components consume them via ServicesContext."
+---
+
+## Overview
+
+All platform integrations are encapsulated in **services** under `src/services/`. Services are plain JavaScript constructor functions (not React components) that follow a common lifecycle: `start()`, `stop()`, `on()`, `off()`. They emit a `stateChanged` event whenever their state changes.
+
+Services are instantiated once in `App.js` and injected into the React tree through `ServicesContext`.
+
+---
+
+## Service lifecycle
+
+Every service exposes the same interface:
+
+| Member | Type | Description |
+|---|---|---|
+| `active` | `boolean` | Whether the service is running and healthy |
+| `error` | `Error \| null` | Set if the service failed to start |
+| `starting` | `boolean` | `true` between `start()` call and the first `stateChanged` event |
+| `transport` | `object \| null` | The underlying transport object (null until active) |
+| `start()` | `function` | Initialises the service |
+| `stop()` | `function` | Tears down the service |
+| `on(event, listener)` | `function` | Subscribe to events |
+| `off(event, listener)` | `function` | Unsubscribe from events |
+
+The app waits for **both** `core.active` and `shell.active` (or their respective errors) before rendering the main UI:
+
+```js
+// src/App/App.js
+const onCoreStateChanged = () => {
+    setInitialized(
+        (services.core.active || services.core.error instanceof Error) &&
+        (services.shell.active || services.shell.error instanceof Error)
+    );
+};
+```
+
+---
+
+## Core service
+
+**Location:** `src/services/Core/`
+
+The Core service wraps `@stremio/stremio-core-web`, the Rust/WASM business-logic engine. It spawns a `CoreTransport` which communicates with a Web Worker via a `Bridge`.
+
+```js
+// src/services/Core/Core.js
+this.start = function() {
+    transport = new CoreTransport(args); // args: { appVersion, shellVersion }
+    transport.on('init', onTransportInit);
+    transport.on('error', onTransportError);
+};
+```
+
+### CoreTransport API
+
+Once `core.active` is `true`, `core.transport` exposes:
+
+| Method | Description |
+|---|---|
+| `getState(field)` | Returns current state for a named model (e.g. `'ctx'`, `'streaming_server'`) |
+| `dispatch(action, field?)` | Sends an action to the core |
+| `analytics(event)` | Sends an analytics event |
+| `decodeStream(stream)` | Decodes a base64 stream descriptor |
+| `getDebugState()` | Returns full debug state |
+| `on('NewState', listener)` | Subscribes to model updates (receives array of changed model names) |
+| `on('CoreEvent', listener)` | Subscribes to core events (e.g. `SettingsUpdated`) |
+
+### Dispatching actions
+
+```js
+// Pull fresh user data from the API
+services.core.transport.dispatch({
+    action: 'Ctx',
+    args: { action: 'PullUserFromAPI', args: {} }
+});
+
+// Load the Player model
+services.core.transport.dispatch({
+    action: 'Load',
+    args: { model: 'Player', args: { stream, streamRequest, metaRequest, subtitlesPath } }
+}, 'player');
+```
+
+---
+
+## Shell service
+
+**Location:** `src/services/Shell/`
+
+The Shell service bridges Stremio Web to the native desktop application shell (built on Qt WebEngine). It communicates over `qt.webChannelTransport` using the Qt WebChannel protocol.
+
+When running in a browser (no `window.qt`), `ShellTransport` throws and the Shell service records an error — but the app continues to function.
+
+### Shell events
+
+The Shell emits events sent by the native shell. The app listens for `open-media` to handle deep links from the OS:
+
+```js
+// src/App/App.js
+shell.on('open-media', (data) => {
+    const { protocol, hostname, pathname, searchParams } = new URL(data);
+    if (protocol === CONSTANTS.PROTOCOL) { // 'stremio:'
+        window.location.href = `#${pathname}?${searchParams.toString()}`;
+    }
+});
+```
+
+The `useShell` hook (`src/common/useShell.js`) provides access to the Shell service instance from any component.
+
+---
+
+## Chromecast service
+
+**Location:** `src/services/Chromecast/`
+
+The Chromecast service wraps the Google Cast SDK. It initialises `ChromecastTransport`, which waits for `window.__onGCastApiAvailable` to be called by the Cast SDK script.
+
+**Receiver application ID:** `1634F54B`
+
+The app sets Cast options after the service becomes active:
+
+```js
+// src/App/App.js
+services.chromecast.transport.setOptions({
+    receiverApplicationId: CONSTANTS.CHROMECAST_RECEIVER_APP_ID, // '1634F54B'
+    autoJoinPolicy: chrome.cast.AutoJoinPolicy.PAGE_SCOPED,
+    resumeSavedSession: false,
+    androidReceiverCompatible: true,
+});
+```
+
+### ChromecastTransport API
+
+| Method | Description |
+|---|---|
+| `getCastState()` | Returns the current `cast.framework.CastState` |
+| `getSessionState()` | Returns the current `cast.framework.SessionState` |
+| `getCastDevice()` | Returns the connected cast device, or `null` |
+| `setOptions(options)` | Configures the `CastContext` |
+| `requestSession()` | Opens the cast device picker |
+| `endCurrentSession(stop)` | Ends the current cast session |
+| `sendMessage(message)` | Sends a JSON message to the receiver app, chunked into 20 kB segments |
+| `on(event, listener)` | Subscribes to Cast SDK events |
+
+Messages to the receiver use the namespace `urn:x-cast:com.stremio`. Large messages are split into 20,000-byte chunks, each tagged with an `id`, `index`, and `length` so the receiver can reassemble them.
+
+---
+
+## DragAndDrop service
+
+**Location:** `src/services/DragAndDrop/`
+
+Handles files dragged onto the browser window. It registers `dragover` and `drop` listeners on `window`.
+
+Supported file types:
+
+| MIME type | Action |
+|---|---|
+| `application/x-bittorrent` | Reads the file, dispatches `StreamingServer.CreateTorrent` to the core |
+| `application/x-subrip` | Accepted (no-op, reserved for subtitle handling) |
+| `text/vtt` | Accepted (no-op) |
+| Other | Emits an `error` event with the file name and type |
+
+The service receives the `core` instance at construction time:
+
+```js
+// src/App/App.js
+new DragAndDrop({ core })
+```
+
+---
+
+## KeyboardShortcuts service
+
+**Location:** `src/services/KeyboardShortcuts/`
+
+Registers a global `keydown` listener for navigation shortcuts. Shortcuts are ignored when the target is an `INPUT` element or any modifier key (`Ctrl`, `Alt`, `Shift`, `Meta`) is held.
+
+| Key | Action |
+|---|---|
+| `0` | Navigate to `#/search` |
+| `1` | Navigate to `#/` (Board) |
+| `2` | Navigate to `#/discover` |
+| `3` | Navigate to `#/library` |
+| `4` | Navigate to `#/calendar` |
+| `5` | Navigate to `#/addons` |
+| `6` | Navigate to `#/settings` |
+| `Backspace` | Navigate back (`window.history.back()`) |
+
+---
+
+## ServicesContext
+
+**Location:** `src/services/ServicesContext/`
+
+`ServicesContext` is a plain React context that holds all service instances. `ServicesProvider` sets the value; components read it with `useServices`.
+
+```js
+// src/App/App.js
+const services = React.useMemo(() => ({
+    core: new Core({ appVersion: process.env.VERSION, shellVersion: null }),
+    shell: new Shell(),
+    chromecast: new Chromecast(),
+    keyboardShortcuts: new KeyboardShortcuts(),
+    dragAndDrop: new DragAndDrop({ core }),
+}), []);
+
+return (
+    <ServicesProvider services={services}>
+        {/* ... */}
+    </ServicesProvider>
+);
+```
+
+### Consuming services in components
+
+```js
+import { useServices } from 'stremio/services';
+
+const MyComponent = () => {
+    const { core, chromecast } = useServices();
+
+    const handleCast = () => {
+        chromecast.transport.requestSession();
+    };
+
+    const loadData = async () => {
+        const state = await core.transport.getState('ctx');
+        // ...
+    };
+};
+```
+
+<Note>
+Most components should use the high-level hooks (`useProfile`, `useStreamingServer`, `useModelState`) rather than calling `core.transport` directly. Use `useServices` when you need direct access to the chromecast, shell, or other non-core services.
+</Note>

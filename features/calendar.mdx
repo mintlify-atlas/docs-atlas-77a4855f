@@ -1,0 +1,63 @@
+---
+title: "Calendar"
+description: "View upcoming and recent episode releases from your library organized in a monthly calendar."
+---
+
+The Calendar shows episode release dates for series in your library. It gives you a month-at-a-glance view of what aired and what is coming up.
+
+## URL
+
+```
+/calendar
+/calendar/:year/:month
+```
+
+Navigating to `/calendar` without parameters loads the current month. The year and month segments are integers (e.g. `/calendar/2026/3` for March 2026).
+
+<Note>
+The Calendar requires you to be signed in. If you are not authenticated, a placeholder is shown instead of the calendar.
+</Note>
+
+## Layout
+
+The Calendar page has three main sections:
+
+<CardGroup cols={3}>
+  <Card title="Selector" icon="chevron-left">
+    Month navigation controls showing the previous month, current month and year, and next month.
+  </Card>
+  <Card title="Table" icon="calendar">
+    A weekly grid view of the current month. Days with episodes show a visual indicator.
+  </Card>
+  <Card title="List" icon="list">
+    A chronological list of days that have episodes, shown alongside the table.
+  </Card>
+</CardGroup>
+
+## Navigating between months
+
+Use the **previous** and **next** buttons in the Selector to move between months. Each button shows the abbreviated name of the target month. Clicking navigates to `/calendar/:year/:month` for the selected month.
+
+The Selector displays dates formatted using your interface language from Settings.
+
+## Calendar table
+
+The table renders a standard week grid starting on Monday. Each cell represents one day of the month. Days that have episodes releasing are interactive — click a day cell to open a details sheet.
+
+## Details sheet
+
+Clicking a day with episodes opens a bottom sheet titled with the selected date (e.g. "19 Mar"). The sheet lists each episode releasing on that day:
+
+- **Series name** 
+- **Season and episode** (e.g. `S2E5`)
+- A **Play** button that navigates to the meta details streams page for that episode
+
+If a selected day has no episodes, the sheet shows a "no new episodes" message.
+
+## List view
+
+To the side of the table, the List view shows only days that have at least one episode, making it easy to scan upcoming releases without reading every cell in the grid.
+
+## Content types in calendar
+
+The Calendar only shows content from your library that has scheduled episode releases. This means only `series` items with known upcoming or recently aired episodes appear. Movies and other content types are not shown.

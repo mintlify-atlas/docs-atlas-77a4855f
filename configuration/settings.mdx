@@ -1,0 +1,142 @@
+---
+title: "Settings"
+description: "Overview of all configurable options in Stremio Web, accessible from the Settings page."
+---
+
+The **Settings** page (`/settings`) is your central hub for customizing every aspect of Stremio Web. Open it by clicking the gear icon in the navigation bar, or press `6` from any main view.
+
+The page is divided into six sections. The left-side menu highlights the active section as you scroll.
+
+## General
+
+The **General** section shows your account information and provides account-level actions.
+
+### Account
+
+Your avatar and email address are displayed at the top of the section. If you are not signed in, you appear as an anonymous user with a **Log In / Sign Up** link.
+
+When signed in, you can:
+
+- **Log Out** — signs you out of your Stremio account.
+- **Export Data** — generates a downloadable export of your library and settings data.
+- **Subscribe to Calendar** — opens or copies an `.ics` calendar URL so you can track release schedules in your calendar app. On iOS the `webcal://` protocol is used automatically.
+- **Change Password** — opens the Stremio password-reset page for your account email.
+- **Delete Account** — links to the Stremio support article for account deletion.
+
+### Links
+
+| Link | Destination |
+|------|-------------|
+| **Support** | https://stremio.zendesk.com/hc/en-us |
+| **Source Code** | GitHub repository at the current build commit |
+| **Terms of Service** | https://www.stremio.com/tos |
+| **Privacy Policy** | https://www.stremio.com/privacy |
+
+### Trakt integration
+
+Connect your [Trakt](https://trakt.tv) account to sync watch history and scrobble activity. Click **Authenticate with Trakt** to open the authorization page. Once authenticated, the Trakt add-on is installed automatically. Click **Log Out** to disconnect the integration.
+
+<Note>
+The **Export Data**, **Subscribe to Calendar**, **Delete Account**, **Change Password**, and **Trakt** options are only visible when you are signed in.
+</Note>
+
+---
+
+## Interface
+
+The **Interface** section controls the language and general UI behavior.
+
+| Setting | Description |
+|---------|-------------|
+| **UI Language** | The display language for all text in Stremio Web. Choose from the full list of supported languages. |
+| **Quit on Close** | When enabled, closing the app window exits the process instead of minimizing to the system tray. *(Desktop shell only)* |
+| **Exit Fullscreen with Escape** | When enabled, pressing `Escape` exits fullscreen mode. *(Desktop shell only)* |
+| **Blur Unwatched Images** | Hides thumbnail images for content you have not yet watched, to avoid spoilers. |
+
+---
+
+## Player
+
+The **Player** section is organized into four categories.
+
+### Subtitles
+
+| Setting | Description |
+|---------|-------------|
+| **Subtitles Language** | Default subtitle language to select automatically when a video starts. Set to **None** to disable automatic selection. |
+| **Subtitles Size** | Subtitle text size as a percentage. Available sizes: 75%, 100%, 125%, 150%, 175%, 200%, 250%. |
+| **Subtitles Color** | Text color for subtitle lines. |
+| **Subtitles Background Color** | Background fill color behind subtitle text. |
+| **Subtitles Outline Color** | Outline/stroke color drawn around subtitle text. |
+
+For full subtitle configuration details, see [Subtitles](/configuration/subtitles).
+
+### Audio
+
+| Setting | Description |
+|---------|-------------|
+| **Default Audio Track** | Preferred audio language to select automatically when a video starts. |
+| **Surround Sound** | When enabled, the player requests multi-channel audio tracks when available. |
+
+### Controls
+
+| Setting | Description |
+|---------|-------------|
+| **Seek Duration** | How many seconds the seek-forward and seek-backward keyboard shortcuts jump. Options: 3, 5, 10, 15, 20, 30 seconds. |
+| **Seek Duration (Shift)** | A secondary, shorter seek duration used when holding `Shift`. Same options as above. |
+| **Play in Background** | Keep playback running when the app window loses focus. *(Currently disabled in the UI.)* |
+
+### Auto Play
+
+| Setting | Description |
+|---------|-------------|
+| **Auto Play** | Automatically play the next episode when the current one ends (binge-watching mode). |
+| **Next Video Popup Duration** | How long before the end of an episode the "Play Next" popup appears. Can be disabled or set from 5 to 90 seconds in 5-second increments. |
+
+### Advanced
+
+| Setting | Description |
+|---------|-------------|
+| **Play in External Player** | Open streams in a third-party player app instead of the built-in player. Available players depend on your platform. |
+| **Hardware Decoding** | Use GPU-accelerated video decoding. *(Desktop shell only.)* |
+| **Video Mode** | Switch between the default and legacy video rendering mode on Windows. *(Windows desktop shell only.)* |
+| **Pause on Minimize** | Pause playback automatically when the app window is minimized. *(Desktop shell only.)* |
+| **ASS Subtitles Styling** | Use the styling embedded in ASS/SSA subtitle files instead of the custom color and size settings. *(Desktop shell only.)* |
+
+---
+
+## Streaming Server
+
+The **Streaming Server** section lets you manage connections to Stremio's local or remote streaming server, which is required for torrent-based streams.
+
+| Setting | Description |
+|---------|-------------|
+| **URL** | List of streaming server URLs. The active URL is highlighted. You can add, remove, and reload connections. The default is `http://127.0.0.1:11470/`. |
+| **Remote URL** | Read-only field showing the public HTTPS remote URL of a connected server. Click the copy button to copy it to the clipboard. |
+| **HTTPS Endpoint** | Select which network interface the streaming server exposes for remote HTTPS access. Requires a signed-in account. |
+| **Cache Size** | Maximum on-disk cache the streaming server uses for torrent data. Options: No caching, 2 GiB, 5 GiB, 10 GiB, Infinite. |
+| **Torrent Profile** | Preset BitTorrent connection parameters. Profiles: **Default**, **Soft**, **Fast**, **Ultra Fast**. |
+| **Transcoding Profile** | Hardware acceleration backend for video transcoding. Options depend on available hardware accelerations reported by the server. |
+
+For full streaming server setup instructions, see [Streaming Server](/configuration/streaming-server).
+
+---
+
+## Keyboard Shortcuts
+
+The **Keyboard Shortcuts** section lists all available keyboard shortcuts grouped by category. This section is not shown on mobile.
+
+For the complete shortcuts reference, see [Keyboard Shortcuts](/configuration/keyboard-shortcuts).
+
+---
+
+## Info
+
+The **Info** section displays version information for the currently running software.
+
+| Field | Description |
+|-------|-------------|
+| **App Version** | The Stremio Web release version. |
+| **Build Version** | The Git commit hash of the current build. |
+| **Server Version** | The version of the connected streaming server, shown only when the server is reachable. |
+| **Shell Version** | The version of the desktop shell wrapper, shown only when running in the desktop app. |

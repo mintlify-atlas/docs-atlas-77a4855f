@@ -1,0 +1,182 @@
+---
+title: "Player"
+description: "The built-in video player with subtitles, audio track selection, playback speed, statistics, Chromecast, and external player support."
+---
+
+The Player is the full-screen video playback experience in Stremio Web. It is powered by the `Player` model in stremio-core-web and the `useVideo` hook which manages the underlying video engine.
+
+## URL structure
+
+```
+/player/:stream
+```
+
+With optional meta parameters:
+
+```
+/player/:stream/:streamTransportUrl/:metaTransportUrl/:type/:id/:videoId
+```
+
+| Segment | Description |
+|---|---|
+| `stream` | Base64-encoded stream object |
+| `streamTransportUrl` | Transport URL of the addon providing the stream |
+| `metaTransportUrl` | Transport URL of the addon providing metadata |
+| `type` | Content type (e.g. `movie`, `series`) |
+| `id` | Meta item ID |
+| `videoId` | Video ID for the specific episode or stream |
+
+When all optional segments are present, the player loads subtitles from addons, saves watch progress to your library, and shows the next video popup for series.
+
+## Video controls
+
+### Play and pause
+
+- Click the **Play/Pause** button in the control bar
+- Click anywhere on the video to toggle play/pause
+- Double-click the video to toggle fullscreen
+- Hold `Space` (or hold left mouse button) to temporarily play at 2× speed; release to return to normal speed
+
+### Seeking
+
+Drag the **seek bar** at the bottom of the screen to jump to any position. The seek bar also shows the buffered portion of the stream.
+
+### Volume
+
+- Click the **mute/unmute** button in the control bar
+- Drag the **volume slider** (hidden on mobile)
+- Scroll the mouse wheel over the video to adjust volume in 5% steps (capped at 100% when scrolling up, down to 0% when scrolling down)
+
+## Subtitles
+
+Open the subtitles menu by clicking the **Subtitles** button in the control bar.
+
+### Language selection
+
+The subtitles menu lists all available languages from both embedded (in-stream) tracks and external tracks loaded from addons. Select a language to activate the best available track for that language. Select **Off** to disable subtitles.
+
+On load, the player automatically selects the track matching your preferred subtitles language from Settings. If a previously saved track ID exists for this stream, that track is restored.
+
+### Subtitle settings
+
+With a track selected, you can adjust:
+
+| Setting | Description |
+|---|---|
+| **Delay** | Shift subtitle timing in 0.25-second steps (external tracks only) |
+| **Size** | Subtitle text size as a percentage (step: 25) |
+| **Vertical position** | Vertical offset as a percentage (0–100) |
+
+### Available sizes
+
+Subtitle size values: `75`, `100`, `125`, `150`, `175`, `200`, `250` (percent)
+
+### Drag-and-drop subtitles
+
+Drop an `.srt` or `.vtt` file anywhere onto the player to load it as a local subtitle track. The player supports `application/x-subrip` (SRT) and `text/vtt` (WebVTT) formats.
+
+## Audio tracks
+
+If the stream contains multiple audio tracks, the **Audio Tracks** button appears in the control bar. Click it to open the audio menu, which lists all available tracks with their language and label. Click a track to switch to it.
+
+On load, the player automatically selects the track matching your preferred audio language from Settings. If a previously saved track ID exists for this stream, that track is restored.
+
+## Playback speed
+
+Click the **Speed** button in the control bar to open the speed menu. Available rates:
+
+`0.25`, `0.50`, `0.75`, `1.00`, `1.25`, `1.50`, `1.75`, `2.00`
+
+The menu shows rates from 2× down to 0.25×.
+
+## Statistics panel
+
+The **Statistics** button is available for torrent streams (streams with an `infoHash` and `fileIdx`). Click it to open the statistics panel, which shows live data updated every 5 seconds:
+
+| Field | Description |
+|---|---|
+| **Peers** | Number of connected peers |
+| **Speed** | Download speed in MB/s |
+| **Completed** | Percentage of the stream buffered (capped at 100%) |
+| **Info Hash** | The torrent info hash |
+
+## Chromecast
+
+If the Chromecast service is active, the **Cast** button appears in the control bar. Click it to open the Cast session picker and stream to a Chromecast device on your network.
+
+When casting is active, the stream is force-transcoded through the streaming server to ensure compatibility.
+
+## External players
+
+The **Options** menu (accessible via the more button or right-click context menu) lets you copy the stream link or open it in an external player. Available external players vary by platform:
+
+| Player | Platforms |
+|---|---|
+| VLC | iOS, visionOS, Android |
+| MPV | macOS |
+| IINA | macOS |
+| MX Player | Android |
+| Just Player | Android |
+| Outplayer | iOS, visionOS |
+| Moonplayer | visionOS |
+| Infuse | iOS, visionOS, macOS |
+| Vidhub | iOS |
+| M3U Playlist | iOS, visionOS, Android, Windows, Linux, macOS |
+
+The options menu also provides **Copy stream link** and **Download video** actions when the stream has an external player deep link available. If an active subtitle track has a URL, **Download subtitles** is also available.
+
+## Next video popup
+
+When watching a series, the player shows a next video popup near the end of the current episode. The popup displays:
+
+- The series name
+- The next episode title and season/episode number
+- A thumbnail (or poster fallback)
+- A **Watch Now** button to jump to the next episode immediately
+- A **Dismiss** button to hide the popup for the current session
+
+The popup timing is controlled by the **Next video notification** duration setting. Binge watching mode (enabled in Settings) causes the player to automatically advance to the next episode when the current one ends.
+
+## Seek time durations
+
+The keyboard seek shortcuts use durations configurable in Settings. Available values (in seconds): `3`, `5`, `10`, `15`, `20`, `30`.
+
+Two separate durations are configurable: a short seek and a standard seek. The keyboard shortcuts use the short seek with one combo key and the standard seek with another.
+
+## Keyboard shortcuts
+
+| Action | Shortcut |
+|---|---|
+| Play / Pause | Configured shortcut (`playPause`) |
+| Seek forward | Configured shortcut (`seekForward`) |
+| Seek backward | Configured shortcut (`seekBackward`) |
+| Mute / Unmute | Configured shortcut (`mute`) |
+| Volume up | Configured shortcut (`volumeUp`) |
+| Volume down | Configured shortcut (`volumeDown`) |
+| Subtitle delay + | Configured shortcut (`subtitlesDelay`, combo 1) |
+| Subtitle delay − | Configured shortcut (`subtitlesDelay`, combo 2) |
+| Subtitle size up | Configured shortcut (`subtitlesSize`, combo 2) |
+| Subtitle size down | Configured shortcut (`subtitlesSize`, combo 1) |
+| Toggle subtitles | Configured shortcut (`toggleSubtitles`) |
+| Open subtitles menu | Configured shortcut (`subtitlesMenu`) |
+| Open audio menu | Configured shortcut (`audioMenu`) |
+| Open speed menu | Configured shortcut (`speedMenu`) |
+| Open info/episodes drawer | Configured shortcut (`infoMenu`) |
+| Open statistics menu | Configured shortcut (`statisticsMenu`) |
+| Play next video | Configured shortcut (`playNext`) |
+| Exit / back | Configured shortcut (`exit`) |
+| Hold `Space` | Temporarily play at 2× speed |
+| Double-click video | Toggle fullscreen |
+| Mouse wheel | Adjust volume |
+
+<Tip>
+You can customise all keyboard shortcuts in **Settings → Keyboard shortcuts**.
+</Tip>
+
+## Side drawer
+
+If meta information is available for the current stream, a **side drawer button** appears on the right side of the screen. Click it (or use the `infoMenu` shortcut) to open the episode/video list drawer without leaving the player.
+
+## Immersive mode
+
+The player hides the control bar and navigation after 3 seconds of mouse inactivity when the video is playing and no menus are open. Move the mouse or interact with any control to reveal the overlay again.

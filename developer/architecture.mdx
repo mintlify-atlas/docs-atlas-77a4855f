@@ -1,0 +1,218 @@
+---
+title: "Architecture"
+description: "High-level overview of the Stremio Web architecture, technology stack, and build pipeline."
+---
+
+## Technology stack
+
+Stremio Web is a React single-page application bundled with Webpack. The key technologies are:
+
+<CardGroup cols={2}>
+  <Card title="React 18" icon="react">
+    UI layer using functional components, hooks, and `React.StrictMode`. No class components.
+  </Card>
+  <Card title="Less + CSS Modules" icon="palette">
+    Styles are written in Less and processed through CSS Modules with a `[local]-[hash:base64:5]` naming strategy.
+  </Card>
+  <Card title="TypeScript" icon="code">
+    New components are written in TypeScript (`.ts`/`.tsx`). Legacy components use CommonJS `.js` files. Both are compiled in the same Webpack pipeline.
+  </Card>
+  <Card title="Webpack 5" icon="box">
+    Bundles the app with Babel for JS, `ts-loader` for TypeScript, `less-loader` + `css-loader` for styles, and Workbox for the service worker.
+  </Card>
+  <Card title="i18next" icon="globe">
+    Internationalisation via `i18next` and `react-i18next`. The interface language is driven by the user's profile settings stored in stremio-core.
+  </Card>
+  <Card title="Workbox" icon="shield">
+    Progressive Web App support. In production builds, `WorkboxPlugin.GenerateSW` generates a service worker that pre-caches all assets up to 20 MB.
+  </Card>
+</CardGroup>
+
+### Full dependency list
+
+Runtime dependencies of note from `package.json`:
+
+| Package | Version | Purpose |
+|---|---|---|
+| `@stremio/stremio-core-web` | 0.54.1 | Core business logic compiled to WASM, runs in a Web Worker |
+| `@stremio/stremio-video` | 0.0.70 | Video player abstraction |
+| `@stremio/stremio-icons` | 5.8.0 | SVG icon set |
+| `@stremio/stremio-colors` | 5.2.0 | Design-system color tokens |
+| `react` / `react-dom` | 18.3.1 | UI framework |
+| `i18next` | ^24.0.5 | i18n engine |
+| `eventemitter3` | 5.0.1 | Event emitter used by all services |
+| `fast-equals` | ^6.0.0 | Deep equality checks in state diffing |
+| `react-focus-lock` | 2.13.2 | Traps focus inside modal dialogs |
+| `spatial-navigation-polyfill` | fork | TV remote / spatial navigation |
+
+---
+
+## Directory structure
+
+```
+src/
+├── App/                  # Root component, service wiring, route config
+│   ├── App.js            # Application entry point
+│   ├── routerViewsConfig.js  # Maps URL regexps to route components
+│   ├── withProtectedRoutes.js  # HOC: auth guard
+│   ├── ServicesToaster.js
+│   ├── DeepLinkHandler.js
+│   ├── SearchParamsHandler.js
+│   ├── UpdaterBanner/
+│   └── ShortcutsModal/
+│
+├── router/               # Custom hash-based router
+│   ├── Router/           # Core Router component
+│   ├── Route/            # Per-route wrapper with modal container
+│   ├── Modal/            # Portal-based modal with focus lock
+│   ├── RouteFocusedContext/  # Context: is this route on top?
+│   └── ModalsContainerContext/
+│
+├── routes/               # Full-page route components
+│   ├── Board/
+│   ├── Discover/
+│   ├── Library/
+│   ├── Calendar/
+│   ├── Search/
+│   ├── MetaDetails/
+│   ├── Addons/
+│   ├── Settings/
+│   ├── Player/
+│   ├── Intro/
+│   └── NotFound/
+│
+├── components/           # Reusable UI components (see components/index.ts)
+│
+├── services/             # Service layer (Core, Shell, Chromecast, etc.)
+│   ├── Core/
+│   ├── Shell/
+│   ├── Chromecast/
+│   ├── DragAndDrop/
+│   ├── KeyboardShortcuts/
+│   └── ServicesContext/  # React context + useServices hook
+│
+├── common/               # Shared hooks, utilities, constants
+│   ├── CONSTANTS.js      # App-wide constants
+│   ├── routesRegexp.js   # URL pattern definitions
+│   ├── useModelState.js  # Core state subscription hook
+│   ├── useProfile.js
+│   ├── useStreamingServer.js
+│   └── ...
+│
+└── types/                # Global TypeScript declarations
+    ├── MetaItem.d.ts
+    ├── Video.d.ts
+    ├── Stream.d.ts
+    └── ...
+```
+
+---
+
+## stremio-core-web integration
+
+`@stremio/stremio-core-web` is the Rust-compiled WASM core of Stremio. It runs in a dedicated **Web Worker** so heavy computation never blocks the UI thread.
+
+The `Core` service initialises a `CoreTransport` which spawns the worker and communicates with it via a `Bridge`:
+
+```js
+// src/services/Core/CoreTransport.js
+const Bridge = require('@stremio/stremio-core-web/bridge');
+
+function CoreTransport(args) {
+    const worker = new Worker(`${process.env.COMMIT_HASH}/scripts/worker.js`);
+    const bridge = new Bridge(window, worker);
+
+    bridge.call(['init'], [args])
+        .then(() => events.emit('init'))
+        .catch((error) => events.emit('error', error));
+
+    this.dispatch = async function(action, field) {
+        return bridge.call(['dispatch'], [action, field, location.hash]);
+    };
+    this.getState = async function(field) {
+        return bridge.call(['getState'], [field]);
+    };
+    // ...
+}
+```
+
+The core emits `NewState` events whenever its internal models change. Components subscribe to specific models through `useModelState`.
+
+---
+
+## State management
+
+Stremio Web does **not** use Redux or any third-party state manager. All state lives in stremio-core-web and is surfaced to React through two hooks:
+
+### `useModelState`
+
+The primary data-fetching hook. It dispatches a load action, subscribes to `NewState` events for the named model, and returns the current state. State updates are throttled and deep-compared to prevent unnecessary re-renders.
+
+```js
+// src/common/useModelState.js
+const useModelState = ({ action, model, map, timeout, deps }) => {
+    const { core } = useServices();
+    const routeFocused = useRouteFocused();
+    // ...
+    // Subscribes to core NewState events only when the route is focused
+    React.useInsertionEffect(() => {
+        const onNewState = async (models) => {
+            const state = await core.transport.getState(model);
+            setState(typeof map === 'function' ? map(state) : state);
+        };
+        if (routeFocused) {
+            core.transport.on('NewState', onNewState);
+        }
+        return () => core.transport.off('NewState', onNewState);
+    }, [routeFocused]);
+};
+```
+
+Specialised hooks built on `useModelState`:
+
+| Hook | Model | Returns |
+|---|---|---|
+| `useProfile` | `ctx` | User profile and settings |
+| `useNotifications` | `ctx` | Notification counts |
+| `useStreamingServer` | `streaming_server` | Streaming server status |
+
+### Route-focused updates
+
+Subscriptions are **only active while the route is the topmost view**. The `RouteFocusedContext` provides a boolean that `useModelState` checks before subscribing to `NewState`. This prevents background routes from re-rendering unnecessarily.
+
+---
+
+## Build pipeline
+
+The Webpack config (`webpack.config.js`) has two entry points:
+
+| Entry | Output | Description |
+|---|---|---|
+| `./src/index.js` | `<COMMIT_HASH>/scripts/main.js` | React application |
+| `@stremio/stremio-core-web/worker.js` | `<COMMIT_HASH>/scripts/worker.js` | Core WASM worker |
+
+Output filenames are prefixed with the current git commit hash, which acts as a cache-busting mechanism and allows the service worker to serve the correct version.
+
+The Less pipeline is: `less-loader` → `postcss-loader` (cssnano with autoprefixer) → `css-loader` (CSS Modules) → `MiniCssExtractPlugin`.
+
+A **thread-loader** runs Babel, `ts-loader`, `css-loader`, `postcss-loader`, and `less-loader` in worker threads equal to the number of CPU cores, significantly reducing build time on multi-core machines.
+
+### Available scripts
+
+```bash
+pnpm start          # Dev server (HTTPS, hot reload disabled)
+pnpm build          # Production build to build/
+pnpm test           # Run Jest tests
+pnpm lint           # ESLint check on src/
+pnpm scan-translations  # Scan for i18n key usage
+```
+
+---
+
+## PWA architecture
+
+In production, Workbox generates a service worker using `GenerateSW` with `clientsClaim: true` and `skipWaiting: true`, which means a newly installed service worker takes over immediately without waiting for all tabs to close.
+
+All static assets (JS, CSS, WASM, images, fonts) are pre-cached. The maximum file size cached is **20 MB** to accommodate the WASM binary.
+
+A `manifest.json` and favicons are copied into the build output by `CopyWebpackPlugin`. The dev server does **not** generate a service worker (`SERVICE_WORKER_DISABLED` defaults to `false` but `WorkboxPlugin` is only added in production mode).

@@ -1,0 +1,270 @@
+---
+title: "Routing"
+description: "How the custom hash-based router works, route patterns, URL parameters, modal routing, and route protection."
+---
+
+## Overview
+
+Stremio Web uses a **custom router** (`src/router/`) rather than React Router. Navigation is driven entirely by the URL hash (`window.location.hash`). The router listens for `hashchange` events, matches the path against a configuration array, and renders the matched component into a layered view stack.
+
+---
+
+## Router component
+
+The `Router` component (`src/router/Router/Router.js`) accepts a `viewsConfig` prop — a two-dimensional array of route config objects — and maintains an array of `views` in state.
+
+```js
+// src/router/Router/Router.js
+const Router = ({ className, onPathNotMatch, onRouteChange, ...props }) => {
+    const viewsConfig = React.useMemo(() => props.viewsConfig, []);
+    const [views, setViews] = React.useState(() =>
+        Array(viewsConfig.length).fill(null)
+    );
+
+    React.useLayoutEffect(() => {
+        const onLocationHashChange = () => {
+            const { pathname, query } = UrlUtils.parse(window.location.hash.slice(1));
+            const routeConfig = routeConfigForPath(viewsConfig, pathname);
+            // ...
+        };
+        window.addEventListener('hashchange', onLocationHashChange);
+        onLocationHashChange(); // run immediately on mount
+        return () => window.removeEventListener('hashchange', onLocationHashChange);
+    }, [onPathNotMatch, onRouteChange]);
+};
+```
+
+Each entry in `viewsConfig` is a **view layer**. When a route is matched, all layers at a higher index than the matched layer are cleared, creating a natural stacking effect (e.g. the Player view clears the Board view behind it).
+
+Route components receive two props:
+- `urlParams` — an object with named URL path segments
+- `queryParams` — a `URLSearchParams` instance
+
+---
+
+## Route configuration
+
+`src/App/routerViewsConfig.js` maps each route regexp to a route component. The config is organised into **five view layers**:
+
+```js
+// src/App/routerViewsConfig.js
+const routerViewsConfig = [
+    [ { ...routesRegexp.board,    component: routes.Board } ],
+    [
+        { ...routesRegexp.intro,          component: routes.Intro },
+        { ...routesRegexp.discover,       component: routes.Discover },
+        { ...routesRegexp.library,        component: routes.Library },
+        { ...routesRegexp.calendar,       component: routes.Calendar },
+        { ...routesRegexp.continuewatching, component: routes.Library },
+        { ...routesRegexp.search,         component: routes.Search },
+    ],
+    [ { ...routesRegexp.metadetails, component: routes.MetaDetails } ],
+    [
+        { ...routesRegexp.addons,    component: routes.Addons },
+        { ...routesRegexp.settings,  component: routes.Settings },
+    ],
+    [ { ...routesRegexp.player, component: routes.Player } ],
+];
+```
+
+Navigating to a deeper layer keeps all layers below it rendered (they remain in the DOM but are not focused).
+
+---
+
+## Route patterns
+
+All URL patterns are defined in `src/common/routesRegexp.js`.
+
+<AccordionGroup>
+  <Accordion title="Board — /#/ or /#/board">
+    ```
+    Regexp:  /^\/?(?:board)?$/
+    Params:  none
+    Example: #/
+    ```
+    The home screen showing catalogues and recommendations.
+  </Accordion>
+  <Accordion title="Intro — /#/intro">
+    ```
+    Regexp:  /^\/intro$/
+    Params:  none
+    Example: #/intro
+    ```
+    Login / onboarding screen. Redirected to `#/` when already authenticated.
+  </Accordion>
+  <Accordion title="Discover — /#/discover">
+    ```
+    Regexp:  /^\/discover(?:\/([^/]*)\/([^/]*)\/([^/]*))?$/
+    Params:  transportUrl, type, catalogId
+    Example: #/discover/https%3A%2F%2Fcinemeta.strem.io%2Fmanifest.json/movie/top
+    ```
+    Catalogue browser. All three params are optional; omitting them shows the default catalogue.
+  </Accordion>
+  <Accordion title="Library — /#/library">
+    ```
+    Regexp:  /^\/library(?:\/([^/]*))?$/
+    Params:  type
+    Example: #/library/movie
+    ```
+    User's library. `type` filters by content type (e.g. `movie`, `series`).
+  </Accordion>
+  <Accordion title="Calendar — /#/calendar">
+    ```
+    Regexp:  /^\/calendar(?:\/([^/]*)\/([^/]*))?$/
+    Params:  year, month
+    Example: #/calendar/2024/3
+    ```
+    Release calendar. `year` and `month` are optional; defaults to the current month.
+  </Accordion>
+  <Accordion title="Continue Watching — /#/continuewatching">
+    ```
+    Regexp:  /^\/continuewatching(?:\/([^/]*))?$/
+    Params:  type
+    Component: routes.Library (reused)
+    Example: #/continuewatching
+    ```
+    Shares the Library component but renders the "continue watching" list.
+  </Accordion>
+  <Accordion title="Search — /#/search">
+    ```
+    Regexp:  /^\/search$/
+    Params:  none
+    Example: #/search
+    ```
+    Search page. The query is passed as a `query` query parameter.
+  </Accordion>
+  <Accordion title="MetaDetails — /#/metadetails/:type/:id">
+    ```
+    Regexp:  /^\/(?:metadetails|detail)\/([^/]*)\/([^/]*)(?:\/([^/]*))?$/
+    Params:  type, id, videoId
+    Example: #/metadetails/movie/tt0111161
+             #/metadetails/series/tt0903747/tt0903747-1-1
+    ```
+    Detail page for a movie, series, or channel. `videoId` pre-selects a specific episode. Accepts both `/metadetails/` and `/detail/` path prefixes.
+  </Accordion>
+  <Accordion title="Addons — /#/addons">
+    ```
+    Regexp:  /^\/addons(?:\/([^/]*)(?:\/([^/]*)\/([^/]*))?)?$/
+    Params:  type, transportUrl, catalogId
+    Example: #/addons
+             #/addons/movie
+    ```
+    Addon browser. All params are optional.
+  </Accordion>
+  <Accordion title="Settings — /#/settings">
+    ```
+    Regexp:  /^\/settings$/
+    Params:  none
+    Example: #/settings
+    ```
+    User settings.
+  </Accordion>
+  <Accordion title="Player — /#/player/:stream">
+    ```
+    Regexp:  /^\/player\/([^/]*)(?:\/([^/]*)\/([^/]*)\/([^/]*)\/([^/]*)\/([^/]*))?$/
+    Params:  stream, streamTransportUrl, metaTransportUrl, type, id, videoId
+    Example: #/player/<encoded-stream>
+             #/player/<encoded-stream>/<streamUrl>/<metaUrl>/movie/tt0111161/tt0111161
+    ```
+    Full-screen player. `stream` is a base64-encoded stream descriptor. The remaining params are optional and provide context for subtitles, next-episode tracking, and meta data.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Route component props
+
+Every route component receives two props injected by the Router:
+
+```ts
+type UrlParams = Record<string, string> & { path: string };
+
+type RouteProps = {
+    urlParams: UrlParams;      // Named path segments from the regexp
+    queryParams: URLSearchParams; // Query string parameters
+};
+```
+
+Example in the Player route:
+
+```js
+// src/routes/Player/Player.js
+const Player = ({ urlParams, queryParams }) => {
+    const forceTranscoding = React.useMemo(
+        () => queryParams.has('forceTranscoding'),
+        [queryParams]
+    );
+    // urlParams.stream, urlParams.type, urlParams.id, ...
+};
+```
+
+---
+
+## Modal routing
+
+Modals are **not** driven by URL changes. Instead, they are rendered as React portals into a per-route container provided by `ModalsContainerContext`.
+
+The `Modal` component (`src/router/Modal/Modal.js`) uses `ReactDOM.createPortal` and wraps its content in a `react-focus-lock` `FocusLock` to trap keyboard focus:
+
+```js
+// src/router/Modal/Modal.js
+const Modal = React.forwardRef(({ className, autoFocus, disabled, children }, ref) => {
+    const modalsContainer = useModalsContainer();
+    return ReactDOM.createPortal(
+        <FocusLock ref={ref} className={classnames(className, 'modal-container')}
+                   autoFocus={!!autoFocus} disabled={!!disabled}>
+            {children}
+        </FocusLock>,
+        modalsContainer
+    );
+});
+```
+
+Each `Route` wraps its content in a `ModalsContainerProvider` that creates the portal target `div`.
+
+---
+
+## `withProtectedRoutes` HOC
+
+`src/App/withProtectedRoutes.js` wraps the Router to enforce authentication:
+
+- If the user was authenticated and then logs out (`profile.auth` changes from non-null to `null`), they are redirected to `#/intro`.
+- If the user is already authenticated and navigates to the `Intro` route, they are redirected to `#/` instead.
+
+```js
+// src/App/withProtectedRoutes.js
+const withProtectedRoutes = (Component) => {
+    return function withProtectedRoutes(props) {
+        const profile = useProfile();
+        const onRouteChange = React.useCallback((routeConfig) => {
+            if (profile.auth !== null && routeConfig.component === Intro) {
+                window.location.replace('#/');
+                return true; // handled: suppress normal render
+            }
+        }, [profile]);
+        return <Component {...props} onRouteChange={onRouteChange} />;
+    };
+};
+```
+
+---
+
+## Route focus management
+
+`RouteFocusedContext` (`src/router/RouteFocusedContext/`) exposes a boolean `routeFocused` that is `true` only for the topmost rendered route.
+
+Components use `useRouteFocused()` to:
+- Pause state subscriptions when the route is not focused (see `useModelState`)
+- Close context menus when the route loses focus (see `Video` component)
+- Pause event listeners in the player
+
+```js
+import { useRouteFocused } from 'stremio-router';
+
+const MyComponent = () => {
+    const routeFocused = useRouteFocused();
+    // Only subscribe to core state when this route is on top
+};
+```
+
+The `stremio-router` alias resolves to `src/router` (configured in `webpack.config.js`).
